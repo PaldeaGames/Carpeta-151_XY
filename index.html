@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>151 XY — Paldea Games</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0d1a;--surf:#141428;--surf2:#1c1c38;--brd:rgba(255,255,255,0.08);--brd2:rgba(255,255,255,0.15);--acc:#7c5cbf;--gold:#e8c84a;--rev:#ff6b35;--tx:#e8e6f0;--txm:#8885a8;--red:#ff4d4d;--accent:#e8ff47;--accent-dim:rgba(232,255,71,0.12);--accent-text:#0d0d0f;--radius:10px;--radius-sm:7px;--green:#47ffb2}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:15px}
+#fixed-top{position:fixed;top:0;left:0;right:0;z-index:150;background:var(--bg)}
+header{background:linear-gradient(135deg,#0d0d1a,#1a0d2e);border-bottom:2px solid var(--acc);padding:14px 20px;display:flex;align-items:center;gap:14px;justify-content:space-between}
+.head-left{display:flex;align-items:center;gap:14px}
+.head-cart-btn{background:var(--accent);color:var(--accent-text);border:none;border-radius:50px;padding:10px 16px 10px 14px;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 2px 12px rgba(232,255,71,.3);transition:all .2s;flex-shrink:0;position:relative}
+.head-cart-btn:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(232,255,71,.45)}
+.head-cart-btn svg{width:19px;height:19px;flex-shrink:0}
+.cart-count{position:absolute;top:-7px;right:-7px;background:var(--red);color:#fff;border-radius:999px;min-width:20px;height:20px;padding:0 5px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;border:2px solid var(--bg);line-height:1}
+.cart-count.zero{display:none}
+.brand-icon{width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.brand-icon img{width:38px;height:38px;object-fit:contain}
+header h1{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800}
+header p{font-size:.75rem;color:var(--txm);margin-top:1px}
+@media(max-width:480px){header{padding:12px 14px;gap:8px}header h1{font-size:.95rem}header p{font-size:.62rem;display:none}.head-left{gap:8px}.head-cart-btn{padding:8px 12px 8px 10px;font-size:.74rem}.head-cart-btn svg{width:16px;height:16px}}
+.sync-bar{font-size:.72rem;color:var(--txm);padding:5px 20px;text-align:right;background:var(--surf);border-bottom:1px solid var(--brd);display:none}
+.sync-bar.show{display:block}
+.paste-banner{display:flex;align-items:center;gap:8px;width:100%;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;background:var(--surf2);color:var(--accent);padding:9px 20px;font-size:.82rem;font-weight:700;border-bottom:1px dashed var(--accent);transition:background .15s}
+.paste-banner:hover{background:var(--accent-dim)}
+.paste-banner svg{width:15px;height:15px;flex-shrink:0}
+.paste-banner.opt-c{background:var(--surf2);color:var(--accent);padding:13px 20px;font-size:.82rem;font-weight:700;border:2px dashed var(--accent);border-radius:0;justify-content:center}
+.paste-banner.opt-c:hover{background:var(--accent-dim)}
+.bar-sticky{background:var(--bg);padding:10px 20px 8px;border-bottom:1px solid var(--brd);box-shadow:0 8px 14px -10px rgba(0,0,0,.6)}
+@media(max-width:480px){.bar-sticky{padding:8px 14px 6px}}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar-search-row{margin-bottom:8px}
+.bar-filters-row{margin-bottom:0}
+.search-wrap{position:relative;flex:1;min-width:130px;display:flex}
+.search-wrap input{width:100%;padding-right:30px;background:var(--surf2);border:1px solid var(--brd2);color:var(--tx);padding:7px 32px 7px 10px;border-radius:6px;font-size:16px;outline:none;font-family:'DM Sans',sans-serif}
+.search-wrap input:focus{border-color:var(--acc)}
+.search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--txm);cursor:pointer;font-size:16px;padding:0;display:none}
+.search-clear:hover{color:var(--tx)}
+.il-select{background:var(--surf2);border:1px solid var(--brd2);color:var(--tx);padding:6px 10px;border-radius:6px;font-size:.82rem;outline:none;font-family:'DM Sans',sans-serif;cursor:pointer}
+.il-select:focus{border-color:var(--acc)}
+.view-toggle{display:flex;align-items:center;gap:6px;margin-left:auto}
+.view-toggle-label{font-size:.7rem;color:var(--txm);font-weight:600}
+.vb-icon{background:var(--surf2);border:1px solid var(--brd2);color:var(--txm);width:30px;height:30px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.vb-icon svg{width:16px;height:16px}
+.vb-icon.on,.vb-icon:hover{background:var(--acc);color:#fff;border-color:var(--acc)}
+.tab{display:none;padding:14px 20px 100px}
+@media(max-width:480px){.tab{padding:10px 14px 100px}}
+.tab.on{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr);gap:8px}}
+.ci{background:var(--surf2);border:1px solid var(--brd);border-radius:var(--radius);overflow:hidden;position:relative;transition:transform .15s}
+.ci:hover{transform:translateY(-2px)}
+.ci.rev{border-color:var(--rev);box-shadow:0 0 7px rgba(255,107,53,.2)}
+.ci.agotado{opacity:.38;filter:grayscale(.7)}
+.imgw{background:#050510;display:flex;align-items:center;justify-content:center;min-height:125px;overflow:hidden;position:relative}
+.agotado-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(20,10,10,.88);border:1px solid rgba(255,80,80,.5);color:#ff8080;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:7px 16px;border-radius:20px;z-index:3;pointer-events:none;box-shadow:0 2px 14px rgba(0,0,0,.5)}
+.ci.rev .imgw img{filter:saturate(1.2) contrast(1.04)}
+.ci.rev .imgw::before{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(180,210,255,.18) 42%,rgba(255,200,240,.32) 48%,rgba(190,255,230,.18) 54%,transparent 66%);z-index:1;pointer-events:none;mix-blend-mode:screen;background-size:220% 220%;background-position:0% 0%;animation:revShine 3.2s ease-in-out infinite}
+@keyframes revShine{0%{background-position:0% 0%}50%{background-position:100% 100%}100%{background-position:0% 0%}}
+.imgw img{width:100%;height:auto;display:block}
+.ph{color:var(--txm);font-size:.71rem;text-align:center;padding:10px;line-height:1.5}
+.vbdg{position:absolute;top:5px;right:5px;padding:2px 6px;border-radius:8px;font-size:.65rem;font-weight:700;z-index:2;pointer-events:none;background:#3a1505;border:1px solid #7a3a18;color:#ff8c5a}
+.tipo-badge{position:absolute;top:5px;left:5px;padding:2px 6px;border-radius:8px;font-size:.65rem;font-weight:700;z-index:2;pointer-events:none}
+.info{padding:8px 9px 10px}
+.pn{font-weight:700;font-size:.85rem;margin-bottom:2px}
+.sn{font-size:.71rem;color:var(--txm);margin:1px 0}
+.cn{font-family:monospace;font-size:.71rem;color:var(--gold);margin-bottom:6px}
+.lang-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
+.lang-btn{font-size:.74rem;padding:4px 12px;border-radius:14px;cursor:pointer;border:1px solid var(--brd2);background:transparent;color:var(--txm);font-family:'DM Sans',sans-serif;transition:all .15s;font-weight:600}
+.lang-btn.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.lang-btn.agotado-lang{opacity:.35;text-decoration:line-through;cursor:not-allowed}
+.precio-row{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+.precio-val{font-size:.9rem;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif}
+.precio-unit{font-size:.65rem;color:var(--txm);margin-bottom:1px}
+.qty-wrap{display:flex;align-items:center;gap:5px}
+.qty-btn{width:22px;height:22px;border-radius:50%;border:1px solid var(--brd2);background:var(--surf);color:var(--tx);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .15s;flex-shrink:0}
+.qty-btn:hover{border-color:var(--accent);color:var(--accent)}
+.qty-btn:disabled{opacity:.3;cursor:not-allowed}
+.qty-num{font-size:13px;font-weight:700;min-width:18px;text-align:center;color:var(--tx)}
+.stk-disp{font-size:.64rem;color:var(--txm);margin-top:2px}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl{width:100%;border-collapse:collapse;font-size:.83rem}
+.tbl th{text-align:left;color:var(--txm);font-weight:600;padding:7px 10px;border-bottom:2px solid var(--brd2);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;background:var(--surf)}
+.tbl td{padding:7px 10px;border-bottom:1px solid var(--brd);vertical-align:middle}
+.tbl tr:hover td{background:rgba(255,255,255,.03)}
+.tbl .lang-btn{font-size:.68rem;padding:2px 7px}
+.tbl .qty-btn{width:20px;height:20px;font-size:12px}
+.tbl .qty-num{font-size:12px}
+.nores{text-align:center;padding:30px;color:var(--txm)}
+.listado-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(124,92,191,.14);border:1px solid var(--acc);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:#cdb8ff}
+.listado-banner button{background:var(--surf2);border:1px solid var(--brd2);color:var(--tx);padding:5px 11px;border-radius:7px;font-size:.74rem;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0}
+.listado-banner button:hover{border-color:var(--acc);color:#fff}
+.no-enc-box{background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.3);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:.8rem}
+.no-enc-box .titulo{color:var(--red);font-weight:700;margin-bottom:6px}
+.no-enc-box .texto{color:var(--txm);font-size:.78rem;line-height:1.6;word-break:break-word;cursor:text;user-select:all}
+#carrito-panel{position:fixed;inset:0;z-index:200;display:none}
+#carrito-panel.show{display:flex}
+#paste-panel{position:fixed;inset:0;z-index:210;display:none}
+#paste-panel.show{display:flex}
+.paste-drawer{position:absolute;right:0;top:0;bottom:0;width:min(420px,100vw);background:var(--surf);border-left:1px solid var(--brd2);display:flex;flex-direction:column;overflow:hidden}
+.paste-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.paste-hint{font-size:.78rem;color:var(--txm);line-height:1.5}
+.paste-hint code{background:var(--surf2);padding:1px 5px;border-radius:4px;font-family:monospace;color:var(--gold)}
+#paste-textarea{width:100%;min-height:140px;background:var(--surf2);border:1px solid var(--brd2);color:var(--tx);padding:10px 12px;border-radius:var(--radius-sm);font-size:16px;font-family:monospace;outline:none;resize:vertical}
+#paste-textarea:focus{border-color:var(--acc)}
+.paste-result-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surf2);border-radius:var(--radius-sm);padding:8px 10px;font-size:.8rem}
+.paste-result-ok{color:var(--accent)}
+.paste-result-fail{color:var(--red)}
+.cart-overlay{position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(2px)}
+.cart-drawer{position:absolute;right:0;top:0;bottom:0;width:min(440px,100vw);background:linear-gradient(180deg,#15142b,#0f0e1f);border-left:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;overflow:hidden;box-shadow:-12px 0 40px rgba(0,0,0,.5)}
+.cart-head{padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(124,92,191,.06)}
+.cart-head h2{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:.01em}
+.cart-close{background:none;border:1px solid var(--brd2);color:var(--txm);font-size:1.1rem;cursor:pointer;padding:4px 10px;border-radius:7px;line-height:1.3}
+.cart-close:hover{color:var(--tx);background:var(--surf2)}
+.cart-items{flex:1;overflow-y:auto;padding:14px 18px}
+.cart-item{background:var(--surf2);border:1px solid var(--brd);border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.cart-item img{width:46px;border-radius:6px;flex-shrink:0}
+.cart-item-info{flex:1;min-width:0}
+.cart-item-name{font-size:.85rem;font-weight:700;margin-bottom:2px;font-family:'Syne',sans-serif}
+.cart-item-meta{font-size:.68rem;color:var(--txm)}
+.cart-item-price{font-size:.86rem;font-weight:700;color:var(--gold);white-space:nowrap}
+.cart-remove{background:none;border:none;color:var(--txm);cursor:pointer;font-size:1rem;padding:3px 7px;border-radius:5px;flex-shrink:0;transition:all .15s}
+.cart-remove:hover{color:var(--red);background:rgba(255,77,77,.1)}
+.cart-footer{padding:18px 22px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0}
+.cart-total{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.cart-total-label{font-size:.8rem;color:var(--txm);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.cart-total-val{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--gold)}
+.cart-ig-btn{display:block;width:100%;padding:14px;background:linear-gradient(135deg,var(--acc),#5c3fa0);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:.92rem;font-weight:800;cursor:pointer;text-align:center;letter-spacing:.02em;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 16px rgba(124,92,191,.35)}
+.cart-ig-btn:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(124,92,191,.5)}
+.cart-note{font-size:.72rem;color:var(--txm);text-align:center;margin-top:10px;line-height:1.5}
+.cart-empty{text-align:center;padding:40px 20px;color:var(--txm);font-size:.9rem}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.78rem;color:var(--txm);margin-bottom:5px;font-weight:600}
+.field .req{color:var(--red);margin-left:2px}
+.field input,.field select{width:100%;background:var(--surf2);border:1px solid var(--brd2);color:var(--tx);padding:10px 12px;border-radius:var(--radius-sm);font-size:16px;outline:none;font-family:'DM Sans',sans-serif}
+.field input:focus,.field select:focus{border-color:var(--acc)}
+.field-error{font-size:.72rem;color:var(--red);margin-top:5px;display:none}
+.field-error.show{display:block}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ig-wrap,.cel-wrap{display:flex;align-items:center;background:var(--surf2);border:1px solid var(--brd2);border-radius:var(--radius-sm);overflow:hidden}
+.ig-wrap:focus-within,.cel-wrap:focus-within{border-color:var(--acc)}
+.ig-prefix,.cel-prefix{padding:10px 12px;color:var(--txm);font-size:.88rem;background:var(--surf);border-right:1px solid var(--brd2);white-space:nowrap;flex-shrink:0}
+.ig-wrap input,.cel-wrap input{border:none;background:transparent;flex:1;padding:10px 12px;color:var(--tx);font-size:16px;outline:none;font-family:'DM Sans',sans-serif}
+.toggle-group{display:flex;gap:8px;margin-bottom:6px}
+.toggle-btn{flex:1;padding:11px;background:var(--surf2);border:1px solid var(--brd2);border-radius:var(--radius-sm);color:var(--txm);font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.toggle-btn.active-retiro{background:rgba(71,255,178,.1);border-color:var(--green);color:var(--green)}
+.toggle-btn.active-envio{background:rgba(124,92,191,.15);border-color:var(--acc);color:#b89cf0}
+.section-retiro,.section-envio{display:none}
+.section-retiro.show,.section-envio.show{display:block}
+.retiro-info{background:rgba(71,255,178,.07);border:1px solid rgba(71,255,178,.2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:12px;font-size:.78rem;color:var(--txm);line-height:1.6}
+.retiro-info strong{color:var(--green)}
+.checkout-divider{border-top:1px solid var(--brd);margin:16px 0 14px}
+.checkout-title{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;color:var(--gold);margin-bottom:10px}
+.checkout-back{background:none;border:1px solid var(--brd2);color:var(--txm);padding:9px 14px;border-radius:var(--radius-sm);cursor:pointer;font-size:.82rem;font-family:'DM Sans',sans-serif}
+.checkout-submit{flex:1;padding:13px;background:var(--accent);color:var(--accent-text);border:none;border-radius:var(--radius-sm);font-family:'Syne',sans-serif;font-size:.92rem;font-weight:800;cursor:pointer}
+.checkout-submit:disabled{opacity:.5;cursor:not-allowed}
+.checkout-row-btns{display:flex;gap:8px;margin-top:16px}
+.success-box{text-align:center;padding:40px 20px}
+.success-box .ok-icon{font-size:2.4rem;margin-bottom:10px}
+.success-box h3{font-family:'Syne',sans-serif;color:var(--accent);font-size:1.05rem;margin-bottom:8px}
+.success-box p{font-size:.85rem;color:var(--txm);line-height:1.6}
+</style>
+</head>
+<body>
+<div id="fixed-top">
+<header>
+  <div class="head-left">
+    <div class="brand-icon">
+      <img src="https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/logo.png" onerror="this.style.display='none'" alt="PG">
+    </div>
+    <div>
+      <h1>151 XY</h1>
+      <p>Scarlet &amp; Violet 151 · Reverse Holo · ENG / ESP / POR</p>
+    </div>
+  </div>
+  <button class="head-cart-btn" onclick="abrirCarrito()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+    Carrito <span class="cart-count zero" id="cart-count">0</span>
+  </button>
+</header>
+<button class="paste-banner opt-c" onclick="abrirPaste()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg>
+  Para buscar más rápido, pega aquí tu listado
+</button>
+<div class="sync-bar" id="syncBar">Cargando precios...</div>
+<div class="bar-sticky">
+  <div class="bar bar-search-row">
+    <div class="search-wrap">
+      <input type="text" id="search-input" placeholder="Buscar carta..." oninput="setQ(this.value)">
+      <button class="search-clear" id="search-clear" onclick="clearQ()">&times;</button>
+    </div>
+  </div>
+  <div class="bar bar-filters-row">
+    <select class="il-select" onchange="setTipoF(this.value)">
+      <option value="">Todos los tipos</option>
+      <option value="Planta">🌿 Planta</option>
+      <option value="Fuego">🔥 Fuego</option>
+      <option value="Agua">💧 Agua</option>
+      <option value="Eléctrico">⚡ Eléctrico</option>
+      <option value="Psíquico">🔮 Psíquico</option>
+      <option value="Lucha">👊 Lucha</option>
+      <option value="Normal">⬜ Normal</option>
+      <option value="Siniestro">🌑 Siniestro</option>
+      <option value="Dragón">🐉 Dragón</option>
+      <option value="Supporter">👤 Supporter</option>
+      <option value="Ítem">🎒 Ítem</option>
+      <option value="Herramienta">🔧 Herramienta</option>
+      <option value="Estadio">🏟 Estadio</option>
+    </select>
+    <select class="il-select" onchange="setLangF(this.value)">
+      <option value="">Todos los idiomas</option>
+      <option value="ENG">Inglés</option>
+      <option value="ESP">Español</option>
+      <option value="Portugués">Portugués</option>
+    </select>
+    <div class="view-toggle">
+      <span class="view-toggle-label">Vista</span>
+      <button class="vb-icon on" id="vb-grid" onclick="setV('grid',this)" title="Galería">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+      </button>
+      <button class="vb-icon" id="vb-table" onclick="setV('table',this)" title="Tabla">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="6" y2="6"></line><line x1="10" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="6" y2="12"></line><line x1="10" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="6" y2="18"></line><line x1="10" y1="18" x2="20" y2="18"></line></svg>
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="tab on" id="tab-main"></div>
+
+<div id="carrito-panel">
+  <div class="cart-overlay" onclick="cerrarCarrito()"></div>
+  <div class="cart-drawer">
+    <div class="cart-head"><h2 id="cart-head-title">Tu carrito</h2><button class="cart-close" onclick="cerrarCarrito()">×</button></div>
+    <div class="cart-items" id="cart-body"></div>
+    <div class="cart-footer" id="cart-footer-zone">
+      <div class="cart-total"><span class="cart-total-label">Total</span><span class="cart-total-val" id="cart-total">$0</span></div>
+      <button class="cart-ig-btn" id="cart-checkout-btn" onclick="irACheckout()">Continuar pedido</button>
+      <div class="cart-note">Completa tus datos y te contactamos por Instagram para coordinar el pago.</div>
+    </div>
+  </div>
+</div>
+
+<div id="paste-panel">
+  <div class="cart-overlay" onclick="cerrarPaste()"></div>
+  <div class="paste-drawer">
+    <div class="cart-head"><h2>Buscar por listado</h2><button class="cart-close" onclick="cerrarPaste()">×</button></div>
+    <div class="paste-body">
+      <div class="paste-hint">Pega tu lista, una carta por línea. Ej: <code>Gengar</code> o <code>Pikachu x2</code></div>
+      <textarea id="paste-textarea" placeholder="Gengar&#10;Pikachu&#10;Mewtwo&#10;..."></textarea>
+      <div id="paste-resultado"></div>
+    </div>
+    <div class="cart-footer" style="padding:14px 20px;border-top:1px solid rgba(255,255,255,.07)">
+      <button class="cart-ig-btn" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,var(--acc),#5c3fa0);border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:.92rem;font-weight:800;cursor:pointer;text-align:center;" onclick="procesarPaste()">Buscar y filtrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var CARDS=[{"id": 1, "num": "001/165", "name": "Bulbasaur", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/001_Bulbasaur_eng.jpg"}, {"id": 2, "num": "002/165", "name": "Ivysaur", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/002_Ivysaur_eng.jpg"}, {"id": 4, "num": "004/165", "name": "Charmander", "tipo": "Fuego", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/004_Charmander_eng.jpg"}, {"id": 5, "num": "005/165", "name": "Charmeleon", "tipo": "Fuego", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/005_Charmeleon_eng.jpg"}, {"id": 7, "num": "007/165", "name": "Squirtle", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/007_Squirtle_eng.jpg"}, {"id": 8, "num": "008/165", "name": "Wartortle", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/008_Wartortle_eng.jpg"}, {"id": 10, "num": "010/165", "name": "Caterpie", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/010_Caterpie_eng.jpg"}, {"id": 11, "num": "011/165", "name": "Metapod", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/011_Metapod_eng.jpg"}, {"id": 12, "num": "012/165", "name": "Butterfree", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/012_Butterfree_eng.jpg"}, {"id": 13, "num": "013/165", "name": "Weedle", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/013_Weedle_eng.jpg"}, {"id": 15, "num": "015/165", "name": "Beedrill", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/015_Beedrill_eng.jpg"}, {"id": 16, "num": "016/165", "name": "Pidgey", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/016_Pidgey_eng.jpg"}, {"id": 18, "num": "018/165", "name": "Pidgeot", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/018_Pidgeot_eng.jpg"}, {"id": 19, "num": "019/165", "name": "Rattata", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/019_Rattata_eng.jpg"}, {"id": 20, "num": "020/165", "name": "Raticate", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/020_Raticate_eng.jpg"}, {"id": 21, "num": "021/165", "name": "Spearow", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/021_Spearow_eng.jpg"}, {"id": 22, "num": "022/165", "name": "Fearow", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/022_Fearow_eng.jpg"}, {"id": 23, "num": "023/165", "name": "Ekans", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/023_Ekans_eng.jpg"}, {"id": 25, "num": "025/165", "name": "Pikachu", "tipo": "Eléctrico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/025_Pikachu_eng.jpg"}, {"id": 27, "num": "027/165", "name": "Sandshrew", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/027_Sandshrew_eng.jpg"}, {"id": 28, "num": "028/165", "name": "Sandslash", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/028_Sandslash_eng.jpg"}, {"id": 30, "num": "030/165", "name": "Nidorina", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/030_Nidorina_eng.jpg"}, {"id": 31, "num": "031/165", "name": "Nidoqueen", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/031_Nidoqueen_eng.jpg"}, {"id": 33, "num": "033/165", "name": "Nidorino", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/033_Nidorino_eng.jpg"}, {"id": 34, "num": "034/165", "name": "Nidoking", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/034_Nidoking_eng.jpg"}, {"id": 35, "num": "035/165", "name": "Clefairy", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/035_Clefairy_eng.jpg"}, {"id": 36, "num": "036/165", "name": "Clefable", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/036_Clefable_eng.jpg"}, {"id": 37, "num": "037/165", "name": "Vulpix", "tipo": "Fuego", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/037_Vulpix_eng.jpg"}, {"id": 39, "num": "039/165", "name": "Jigglypuff", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/039_Jigglypuff_eng.jpg"}, {"id": 41, "num": "041/165", "name": "Zubat", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/041_Zubat_eng.jpg"}, {"id": 42, "num": "042/165", "name": "Golbat", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/042_Golbat_eng.jpg"}, {"id": 43, "num": "043/165", "name": "Oddish", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/043_Oddish_eng.jpg"}, {"id": 44, "num": "044/165", "name": "Gloom", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/044_Gloom_eng.jpg"}, {"id": 46, "num": "046/165", "name": "Paras", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/046_Paras_eng.jpg"}, {"id": 47, "num": "047/165", "name": "Parasect", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/047_Parasect_eng.jpg"}, {"id": 48, "num": "048/165", "name": "Venonat", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/048_Venonat_eng.jpg"}, {"id": 49, "num": "049/165", "name": "Venomoth", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/049_Venomoth_eng.jpg"}, {"id": 50, "num": "050/165", "name": "Diglett", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/050_Diglett_eng.jpg"}, {"id": 51, "num": "051/165", "name": "Dugtrio", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/051_Dugtrio_eng.jpg"}, {"id": 52, "num": "052/165", "name": "Meowth", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/052_Meowth_eng.jpg"}, {"id": 53, "num": "053/165", "name": "Persian", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/053_Persian_eng.jpg"}, {"id": 54, "num": "054/165", "name": "Psyduck", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/054_Psyduck_eng.jpg"}, {"id": 55, "num": "055/165", "name": "Golduck", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/055_Golduck_eng.jpg"}, {"id": 56, "num": "056/165", "name": "Mankey", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/056_Mankey_eng.jpg"}, {"id": 57, "num": "057/165", "name": "Primeape", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/057_Primeape_eng.jpg"}, {"id": 58, "num": "058/165", "name": "Growlithe", "tipo": "Fuego", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/058_Growlithe_eng.jpg"}, {"id": 59, "num": "059/165", "name": "Arcanine", "tipo": "Fuego", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/059_Arcanine_eng.jpg"}, {"id": 60, "num": "060/165", "name": "Poliwag", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/060_Poliwag_eng.jpg"}, {"id": 62, "num": "062/165", "name": "Poliwrath", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/062_Poliwrath_eng.jpg"}, {"id": 63, "num": "063/165", "name": "Abra", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/063_Abra_eng.jpg"}, {"id": 64, "num": "064/165", "name": "Kadabra", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/064_Kadabra_eng.jpg"}, {"id": 66, "num": "066/165", "name": "Machop", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/066_Machop_eng.jpg"}, {"id": 67, "num": "067/165", "name": "Machoke", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/067_Machoke_eng.jpg"}, {"id": 68, "num": "068/165", "name": "Machamp", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/068_Machamp_eng.jpg"}, {"id": 69, "num": "069/165", "name": "Bellsprout", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/069_Bellsprout_eng.jpg"}, {"id": 71, "num": "071/165", "name": "Victreebel", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/071_Victreebel_eng.jpg"}, {"id": 72, "num": "072/165", "name": "Tentacool", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/072_Tentacool_eng.jpg"}, {"id": 73, "num": "073/165", "name": "Tentacruel", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/073_Tentacruel_eng.jpg"}, {"id": 74, "num": "074/165", "name": "Geodude", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/074_Geodude_eng.jpg"}, {"id": 75, "num": "075/165", "name": "Graveler", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/075_Graveler_eng.jpg"}, {"id": 77, "num": "077/165", "name": "Ponyta", "tipo": "Fuego", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/077_Ponyta_eng.jpg"}, {"id": 78, "num": "078/165", "name": "Rapidash", "tipo": "Fuego", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/078_Rapidash_eng.jpg"}, {"id": 79, "num": "079/165", "name": "Slowpoke", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/079_Slowpoke_eng.jpg"}, {"id": 80, "num": "080/165", "name": "Slowbro", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/080_Slowbro_eng.jpg"}, {"id": 81, "num": "081/165", "name": "Magnemite", "tipo": "Eléctrico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/081_Magnemite_eng.jpg"}, {"id": 82, "num": "082/165", "name": "Magneton", "tipo": "Eléctrico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/082_Magneton_eng.jpg"}, {"id": 83, "num": "083/165", "name": "Farfetchd", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/083_Farfetchd_eng.jpg"}, {"id": 84, "num": "084/165", "name": "Doduo", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/084_Doduo_eng.jpg"}, {"id": 86, "num": "086/165", "name": "Seel", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/086_Seel_eng.jpg"}, {"id": 87, "num": "087/165", "name": "Dewgong", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/087_Dewgong_eng.jpg"}, {"id": 88, "num": "088/165", "name": "Grimer", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/088_Grimer_eng.jpg"}, {"id": 89, "num": "089/165", "name": "Muk", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/089_Muk_eng.jpg"}, {"id": 90, "num": "090/165", "name": "Shellder", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/090_Shellder_eng.jpg"}, {"id": 91, "num": "091/165", "name": "Cloyster", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/091_Cloyster_eng.jpg"}, {"id": 92, "num": "092/165", "name": "Gastly", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/092_Gastly_eng.jpg"}, {"id": 93, "num": "093/165", "name": "Haunter", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/093_Haunter_eng.jpg"}, {"id": 94, "num": "094/165", "name": "Gengar", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/094_Gengar_eng.jpg"}, {"id": 95, "num": "095/165", "name": "Onix", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/095_Onix_eng.jpg"}, {"id": 96, "num": "096/165", "name": "Drowzee", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/096_Drowzee_eng.jpg"}, {"id": 98, "num": "098/165", "name": "Krabby", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/098_Krabby_eng.jpg"}, {"id": 99, "num": "099/165", "name": "Kingler", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/099_Kingler_eng.jpg"}, {"id": 100, "num": "100/165", "name": "Voltorb", "tipo": "Eléctrico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/100_Voltorb_eng.jpg"}, {"id": 101, "num": "101/165", "name": "Electrode", "tipo": "Eléctrico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/101_Electrode_eng.jpg"}, {"id": 102, "num": "102/165", "name": "Exeggcute", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/102_Exeggcute_eng.jpg"}, {"id": 103, "num": "103/165", "name": "Exeggutor", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/103_Exeggutor_eng.jpg"}, {"id": 104, "num": "104/165", "name": "Cubone", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/104_Cubone_eng.jpg"}, {"id": 105, "num": "105/165", "name": "Marowak", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/105_Marowak_eng.jpg"}, {"id": 107, "num": "107/165", "name": "Hitmonchan", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/107_Hitmonchan_eng.jpg"}, {"id": 108, "num": "108/165", "name": "Lickitung", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/108_Lickitung_eng.jpg"}, {"id": 109, "num": "109/165", "name": "Koffing", "tipo": "Siniestro", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/109_Koffing_eng.jpg"}, {"id": 111, "num": "111/165", "name": "Rhyhorn", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/111_Rhyhorn_eng.jpg"}, {"id": 112, "num": "112/165", "name": "Rhydon", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/112_Rhydon_eng.jpg"}, {"id": 114, "num": "114/165", "name": "Tangela", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/114_Tangela_eng.jpg"}, {"id": 116, "num": "116/165", "name": "Horsea", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/116_Horsea_eng.jpg"}, {"id": 117, "num": "117/165", "name": "Seadra", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/117_Seadra_eng.jpg"}, {"id": 118, "num": "118/165", "name": "Goldeen", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/118_Goldeen_eng.jpg"}, {"id": 120, "num": "120/165", "name": "Staryu", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/120_Staryu_eng.jpg"}, {"id": 121, "num": "121/165", "name": "Starmie", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/121_Starmie_eng.jpg"}, {"id": 122, "num": "122/165", "name": "Mr. Mime", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/122_Mr. Mime_eng.jpg"}, {"id": 127, "num": "127/165", "name": "Pinsir", "tipo": "Planta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/127_Pinsir_eng.jpg"}, {"id": 129, "num": "129/165", "name": "Magikarp", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/129_Magikarp_eng.jpg"}, {"id": 130, "num": "130/165", "name": "Gyarados", "tipo": "Agua", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/130_Gyarados_eng.jpg"}, {"id": 133, "num": "133/165", "name": "Eevee", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/133_Eevee_eng.jpg"}, {"id": 136, "num": "136/165", "name": "Flareon", "tipo": "Fuego", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/136_Flareon_eng.jpg"}, {"id": 137, "num": "137/165", "name": "Porygon", "tipo": "Normal", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/137_Porygon_eng.jpg"}, {"id": 141, "num": "141/165", "name": "Kabutops", "tipo": "Lucha", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/141_Kabutops_eng.jpg"}, {"id": 146, "num": "146/165", "name": "Moltres", "tipo": "Fuego", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/146_Moltres_eng.jpg"}, {"id": 147, "num": "147/165", "name": "Dratini", "tipo": "Dragón", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/147_Dratini_eng.jpg"}, {"id": 150, "num": "150/165", "name": "Mewtwo", "tipo": "Psíquico", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/150_Mewtwo_eng.jpg"}, {"id": 152, "num": "152/165", "name": "Antique Dome Fossil", "tipo": "Ítem", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/152_Antique Dome Fossil_eng.jpg"}, {"id": 153, "num": "153/165", "name": "Antique Helix Fossil", "tipo": "Ítem", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/153_Antique Helix Fossil_eng.jpg"}, {"id": 154, "num": "154/165", "name": "Antique Old Amber", "tipo": "Ítem", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/154_Antique Old Amber_eng.jpg"}, {"id": 155, "num": "155/165", "name": "Big Air Balloon", "tipo": "Herramienta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/155_Big Air Balloon_eng.jpg"}, {"id": 156, "num": "156/165", "name": "Bills Transfer", "tipo": "Supporter", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/156_Bills Transfer_eng.jpg"}, {"id": 157, "num": "157/165", "name": "Cycling Road", "tipo": "Estadio", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/157_Cycling Road_eng.jpg"}, {"id": 158, "num": "158/165", "name": "Daisys Help", "tipo": "Supporter", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/158_Daisys Help_eng.jpg"}, {"id": 159, "num": "159/165", "name": "Energy Sticker", "tipo": "Ítem", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/159_Energy Sticker_eng.jpg"}, {"id": 160, "num": "160/165", "name": "Erikas Invitation", "tipo": "Supporter", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/160_Erikas Invitation_eng.jpg"}, {"id": 161, "num": "161/165", "name": "Giovannis Charisma", "tipo": "Supporter", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/161_Giovannis Charisma_eng.jpg"}, {"id": 162, "num": "162/165", "name": "Grabber", "tipo": "Herramienta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/162_Grabber_eng.jpg"}, {"id": 163, "num": "163/165", "name": "Leftovers", "tipo": "Herramienta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/163_Leftovers_eng.jpg"}, {"id": 164, "num": "164/165", "name": "Protective Goggles", "tipo": "Herramienta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/164_Protective Goggles_eng.jpg"}, {"id": 165, "num": "165/165", "name": "Rigid Band", "tipo": "Herramienta", "img": "https://cdn.jsdelivr.net/gh/PaldeaGames/Carpeta-151_XY@main/165_Rigid Band_eng.jpg"}];
+var TIPO_INFO={"Planta":{"color":"#4CAF50","icon":"\ud83c\udf3f","bg":"#e8f5e9"},"Fuego":{"color":"#f44336","icon":"\ud83d\udd25","bg":"#ffebee"},"Agua":{"color":"#2196F3","icon":"\ud83d\udca7","bg":"#e3f2fd"},"El\u00e9ctrico":{"color":"#FFC107","icon":"\u26a1","bg":"#fff8e1"},"Ps\u00edquico":{"color":"#9C27B0","icon":"\ud83d\udd2e","bg":"#f3e5f5"},"Lucha":{"color":"#FF5722","icon":"\ud83d\udc4a","bg":"#fbe9e7"},"Normal":{"color":"#9E9E9E","icon":"\u2b1c","bg":"#f5f5f5"},"Siniestro":{"color":"#424242","icon":"\ud83c\udf11","bg":"#e0e0e0"},"Metal":{"color":"#607D8B","icon":"\u2699","bg":"#eceff1"},"Supporter":{"color":"#1565C0","icon":"\ud83d\udc64","bg":"#e3f2fd"},"\u00cdtem":{"color":"#6A1B9A","icon":"\ud83c\udf92","bg":"#f3e5f5"},"Herramienta":{"color":"#558B2F","icon":"\ud83d\udd27","bg":"#f1f8e9"},"Estadio":{"color":"#BF360C","icon":"\ud83c\udfdf","bg":"#fbe9e7"},"Dragón":{"color":"#6B2FBE","icon":"🐉","bg":"#ede7f6"}};
+
+var GAS_URL='https://script.google.com/macros/s/AKfycbymkq81nv85-kf3QIbjnkPfYyQwN6PZIn9r8GsJ7iVMYbgL5CtvLCADHc9c5CCXtMCl/exec';
+var IDIOMAS=['ENG','ESP','POR'];
+var QF='',TIPOF='',LANGF='',VM='grid';
+var GAS_LOADED=false;
+var STOCK={},PRICES={};
+var CARD_IDIOMA={};
+var CARRITO=[];
+var LISTADO_IDS=null,LISTADO_RESUMEN=null,NO_ENCONTRADOS_GLOBAL=[];
+var CHECKOUT_VIEW='cart';
+var entregaMode='';
+
+function skey(nombre,idioma){ return nombre.toLowerCase()+'|reverse|'+idioma.toUpperCase(); }
+
+function clp(n){ return '$ '+Math.round(n).toLocaleString('es-CL'); }
+
+async function syncGAS(){
+  var bar=document.getElementById('syncBar');
+  bar.className='sync-bar show'; bar.textContent='Cargando precios y stock...';
+  try{
+    var resp=await fetch(GAS_URL+'?carpeta=XY');
+    var data=await resp.json();
+    if(data.ok&&data.data){
+      STOCK={};PRICES={};
+      data.data.forEach(function(item){
+        var nom=item.nombre.trim().toLowerCase();
+        var rar=(item.rareza||'').toLowerCase();
+        if(rar!=='reverse') return;
+        if(item.stk_eng>0||item.prc_eng>0){
+          STOCK[nom+'|reverse|ENG']=(STOCK[nom+'|reverse|ENG']||0)+( item.stk_eng||0);
+          if(item.prc_eng>0) PRICES[nom+'|reverse|ENG']=item.prc_eng;
+        }
+        if(item.stk_esp>0||item.prc_esp>0){
+          STOCK[nom+'|reverse|ESP']=(STOCK[nom+'|reverse|ESP']||0)+(item.stk_esp||0);
+          if(item.prc_esp>0) PRICES[nom+'|reverse|ESP']=item.prc_esp;
+        }
+        if(item.stk_por>0||item.prc_por>0){
+          STOCK[nom+'|reverse|POR']=(STOCK[nom+'|reverse|POR']||0)+(item.stk_por||0);
+          if(item.prc_por>0) PRICES[nom+'|reverse|POR']=item.prc_por;
+        }
+      });
+      GAS_LOADED=true;
+      var now=new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+      bar.textContent='Precios actualizados - '+now;
+      setTimeout(function(){bar.className='sync-bar';},4000);
+      renderAll();
+    }
+  }catch(e){
+    bar.textContent='Error al cargar precios';
+    setTimeout(function(){bar.className='sync-bar';},3000);
+  }
+}
+
+function idiomasConStock(card){
+  var nom=card.name.toLowerCase();
+  return IDIOMAS.filter(function(idm){ return (STOCK[nom+'|reverse|'+idm]||0)>0; });
+}
+
+function idiomaActivo(card){
+  if(CARD_IDIOMA[card.id]) return CARD_IDIOMA[card.id];
+  var disp=idiomasConStock(card);
+  return disp.length?disp[0]:'ENG';
+}
+
+function getStock(card,idioma){ return STOCK[card.name.toLowerCase()+'|reverse|'+idioma]||0; }
+function getPrecio(card,idioma){ return PRICES[card.name.toLowerCase()+'|reverse|'+idioma]||0; }
+
+function setIdioma(cardId,idioma){ CARD_IDIOMA[cardId]=idioma; renderCard(cardId); }
+
+function tipoStyle(tipo){
+  var t=TIPO_INFO[tipo]||{color:'#888',icon:'?',bg:'#222'};
+  return 'background:'+t.bg+';color:'+t.color+';border:1px solid '+t.color+'40;';
+}
+
+function buildCardHtml(card){
+  var idioma=idiomaActivo(card);
+  var disp=GAS_LOADED?idiomasConStock(card):[];
+  var stk=GAS_LOADED?getStock(card,idioma):0;
+  var precio=GAS_LOADED?getPrecio(card,idioma):0;
+  var agotado=GAS_LOADED&&stk===0;
+  var ti=TIPO_INFO[card.tipo]||{color:'#888',icon:'?',bg:'#222'};
+  var imgHtml=card.img
+    ?'<img src="'+card.img+'" alt="'+card.name+'" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML=\'<div class=&quot;ph&quot;>'+card.name+'</div>\'">'
+    :'<div class="ph">'+card.name+'</div>';
+  var agotadoOverlay=agotado?'<div class="agotado-center">Agotado</div>':'';
+  var langHtml='';
+  if(GAS_LOADED&&disp.length){
+    langHtml='<div class="lang-row">';
+    disp.forEach(function(idm){
+      var sIdm=getStock(card,idm);
+      var act=idioma===idm;
+      langHtml+='<button class="lang-btn'+(act?' active':'')+(sIdm===0?' agotado-lang':'')+(sIdm>0?' onclick="setIdioma('+card.id+',\''+idm+'\')"':' disabled')+'>'+idm+'</button>';
+    });
+    langHtml+='</div>';
+  }
+  var enCarrito=CARRITO.find(function(c){return c.cardId===card.id&&c.idioma===idioma;});
+  var qty=enCarrito?enCarrito.qty:0;
+  var precioHtml='';
+  if(GAS_LOADED&&!agotado){
+    precioHtml='<div class="precio-row">'
+      +'<div><div class="precio-val">'+(precio>0?clp(precio):'Sin precio')+'</div>'
+      +'<div class="stk-disp">'+stk+' disp.</div></div>'
+      +'<div class="qty-wrap">'
+      +'<button class="qty-btn" onclick="cambiarQty('+card.id+','+(qty>0?-1:0)+',\''+idioma+'\')" '+(qty===0?'disabled':'')+'>-</button>'
+      +'<span class="qty-num" style="color:'+(qty>0?'var(--accent)':'var(--txm)')+'">'+qty+'</span>'
+      +'<button class="qty-btn" onclick="cambiarQty('+card.id+',1,\''+idioma+'\')" '+(qty>=stk||precio===0?'disabled':'')+'>+</button>'
+      +'</div></div>';
+  }
+  return '<div class="ci rev'+(agotado?' agotado':'')+'">'
+    +'<div class="imgw">'+imgHtml+agotadoOverlay+'</div>'
+    +'<span class="vbdg">⬡ Reverse</span>'
+    
+    +'<div class="info">'
+    +'<div class="pn">'+card.name+'</div>'
+    +'<div class="cn">#'+card.num+'</div>'
+    +'<div class="sn">Scarlet &amp; Violet 151</div>'
+    +langHtml+precioHtml
+    +'</div></div>';
+}
+
+function renderCard(cardId){
+  var card=CARDS.find(function(c){return c.id===cardId;});
+  if(!card) return;
+  var wraps=document.querySelectorAll('[data-cid="'+cardId+'"]');
+  wraps.forEach(function(w){ w.innerHTML=buildCardHtml(card); });
+}
+
+function filtered(){
+  var q=QF.toLowerCase();
+  var base=LISTADO_IDS?CARDS.filter(function(c){return LISTADO_IDS.indexOf(c.id)>=0;}):CARDS;
+  return base.filter(function(c){
+    var mQ=!q||c.name.toLowerCase().indexOf(q)>=0||c.num.indexOf(q)>=0;
+    var mT=!TIPOF||c.tipo===TIPOF;
+    var mL=!LANGF||!GAS_LOADED||(STOCK[c.name.toLowerCase()+'|reverse|'+LANGF]||0)>0;
+    return mQ&&mT&&mL;
+  });
+}
+
+function renderGrid(rows,cont){
+  var h='<div class="grid">';
+  rows.forEach(function(c){ h+='<div data-cid="'+c.id+'">'+buildCardHtml(c)+'</div>'; });
+  h+='</div>';
+  cont.innerHTML=h;
+}
+
+function renderTable(rows,cont){
+  var h='<div class="tbl-scroll"><table class="tbl"><thead><tr>'
+    +'<th>Img</th><th>Carta</th><th>#</th><th>Tipo</th>'
+    +(GAS_LOADED?'<th>Idioma</th><th>Precio</th><th>Stock</th><th>Carrito</th>':'')
+    +'</tr></thead><tbody>';
+  rows.forEach(function(c){
+    var idioma=idiomaActivo(c);
+    var disp=GAS_LOADED?idiomasConStock(c):[];
+    var stk=GAS_LOADED?getStock(c,idioma):0;
+    var prc=GAS_LOADED?getPrecio(c,idioma):0;
+    var agotado=GAS_LOADED&&stk===0;
+    var ti=TIPO_INFO[c.tipo]||{color:'#888',icon:'?'};
+    var imgHtml=c.img?'<img src="'+c.img+'" alt="'+c.name+'" style="width:44px;border-radius:4px" loading="lazy">':'—';
+    var langCell='—',precCell='—',stkCell='—',cartCell='';
+    if(GAS_LOADED){
+      var langBtns='';
+      disp.forEach(function(idm){
+        var s=getStock(c,idm);
+        var act=idioma===idm;
+        langBtns+='<button class="lang-btn'+(act?' active':'')+(s===0?' agotado-lang':'')+'"'+(s>0?' onclick="setIdioma('+c.id+',\''+idm+'\')"':' disabled')+'>'+idm+'</button> ';
+      });
+      langCell=langBtns||'—';
+      precCell=prc>0?clp(prc):'Sin precio';
+      stkCell=String(stk);
+      if(!agotado&&stk>0&&prc>0){
+        var en=CARRITO.find(function(x){return x.cardId===c.id&&x.idioma===idioma;});
+        var q=en?en.qty:0;
+        cartCell='<div class="qty-wrap">'
+          +'<button class="qty-btn" onclick="cambiarQty('+c.id+','+(q>0?-1:0)+',\''+idioma+'\')" '+(q===0?'disabled':'')+'>-</button>'
+          +'<span class="qty-num">'+q+'</span>'
+          +'<button class="qty-btn" onclick="cambiarQty('+c.id+',1,\''+idioma+'\')" '+(q>=stk?'disabled':'')+'>+</button></div>';
+      }
+    }
+    h+='<tr data-cid="'+c.id+'" class="'+(agotado?'agotado-row':'')+'">'
+      +'<td>'+imgHtml+'</td>'
+      +'<td><strong>'+c.name+'</strong></td>'
+      +'<td style="font-family:monospace;color:var(--gold)">#'+c.num+'</td>'
+      +'<td><span style="font-size:.7rem;padding:2px 6px;border-radius:6px;'+tipoStyle(c.tipo)+'">'+ti.icon+' '+c.tipo+'</span></td>'
+      +(GAS_LOADED?'<td>'+langCell+'</td><td>'+precCell+'</td><td>'+stkCell+'</td><td>'+cartCell+'</td>':'')
+      +'</tr>';
+  });
+  h+='</tbody></table></div>';
+  cont.innerHTML=h;
+}
+
+function renderAll(){
+  var cont=document.getElementById('tab-main');
+  var rows=filtered();
+  if(LISTADO_IDS) mostrarBannerListado();
+  if(!rows.length){cont.innerHTML='<div class="nores">Sin resultados</div>';return;}
+  if(VM==='table') renderTable(rows,cont);
+  else renderGrid(rows,cont);
+  ajustarOffset();
+}
+
+function ajustarOffset(){
+  var ft=document.getElementById('fixed-top');
+  var tm=document.getElementById('tab-main');
+  if(ft&&tm) tm.style.paddingTop=ft.offsetHeight+'px';
+}
+if(window.ResizeObserver) new ResizeObserver(ajustarOffset).observe(document.getElementById('fixed-top'));
+
+function setQ(v){QF=v;document.getElementById('search-clear').style.display=v?'block':'none';renderAll();}
+function clearQ(){document.getElementById('search-input').value='';setQ('');}
+function setTipoF(v){TIPOF=v;renderAll();}
+function setLangF(v){LANGF=v;renderAll();}
+function setV(mode,btn){VM=mode;document.querySelectorAll('.vb-icon').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderAll();}
+
+// ── Carrito ──────────────────────────────────────────────────
+function cambiarQty(cardId,delta,idioma){
+  var card=CARDS.find(function(c){return c.id===cardId;});
+  if(!card) return;
+  var stk=getStock(card,idioma);
+  var precio=getPrecio(card,idioma);
+  var idx=CARRITO.findIndex(function(c){return c.cardId===cardId&&c.idioma===idioma;});
+  if(idx>=0){
+    var nueva=CARRITO[idx].qty+delta;
+    if(nueva<=0) CARRITO.splice(idx,1);
+    else CARRITO[idx].qty=Math.min(nueva,stk);
+  } else if(delta>0&&precio>0&&stk>0){
+    CARRITO.push({cardId:cardId,nombre:card.name,variante:'Reverse',idioma:idioma,precio:precio,qty:1,img:card.img,num:card.num});
+  }
+  actualizarCarritoBtn();
+  renderCard(cardId);
+}
+
+function actualizarCarritoBtn(){
+  var total=CARRITO.reduce(function(s,c){return s+c.qty;},0);
+  var cnt=document.getElementById('cart-count');
+  cnt.textContent=total;
+  cnt.className='cart-count'+(total===0?' zero':'');
+  if(document.getElementById('carrito-panel').classList.contains('show')) renderCarritoPanel();
+}
+
+function abrirCarrito(){CHECKOUT_VIEW='cart';document.getElementById('carrito-panel').classList.add('show');renderCarritoPanel();}
+function cerrarCarrito(){document.getElementById('carrito-panel').classList.remove('show');}
+
+function renderCarritoPanel(){
+  if(CHECKOUT_VIEW==='cart') renderVistaCarrito();
+  else if(CHECKOUT_VIEW==='form') renderVistaFormulario();
+  else if(CHECKOUT_VIEW==='success') renderVistaExito();
+}
+
+function renderVistaCarrito(){
+  document.getElementById('cart-head-title').textContent='Tu carrito';
+  var body=document.getElementById('cart-body');
+  var footer=document.getElementById('cart-footer-zone');
+  footer.style.display='block';
+  if(!CARRITO.length){
+    body.innerHTML='<div class="cart-empty">Tu carrito está vacío.</div>';
+    document.getElementById('cart-total').textContent='$0';
+    document.getElementById('cart-checkout-btn').style.display='none';
+    return;
+  }
+  document.getElementById('cart-checkout-btn').style.display='block';
+  var total=0,h='';
+  CARRITO.forEach(function(c){
+    var sub=c.precio*c.qty; total+=sub;
+    h+='<div class="cart-item">';
+    if(c.img) h+='<img src="'+c.img+'" alt="'+c.nombre+'">';
+    h+='<div class="cart-item-info">'
+      +'<div class="cart-item-name">'+c.nombre+'</div>'
+      +'<div class="cart-item-meta">Reverse · '+c.idioma+' · #'+c.num+'</div>'
+      +'<div style="font-size:.72rem;color:var(--txm);margin-top:2px">'+clp(c.precio)+' x '+c.qty+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div class="cart-item-price">'+clp(sub)+'</div>'
+      +'<div class="qty-wrap" style="margin-top:4px;justify-content:flex-end">'
+      +'<button class="qty-btn" onclick="cambiarQtyCart('+c.cardId+',\''+c.idioma+'\',-1)">-</button>'
+      +'<span class="qty-num">'+c.qty+'</span>'
+      +'<button class="qty-btn" onclick="cambiarQtyCart('+c.cardId+',\''+c.idioma+'\',1)">+</button>'
+      +'</div></div>'
+      +'<button class="cart-remove" onclick="quitarCart('+c.cardId+',\''+c.idioma+'\')">×</button>'
+      +'</div>';
+  });
+  body.innerHTML=h;
+  document.getElementById('cart-total').textContent=clp(total);
+}
+
+function irACheckout(){if(!CARRITO.length) return;CHECKOUT_VIEW='form';renderCarritoPanel();}
+function volverAlCarrito(){CHECKOUT_VIEW='cart';renderCarritoPanel();}
+
+function renderVistaFormulario(){
+  document.getElementById('cart-head-title').textContent='Tus datos';
+  document.getElementById('cart-footer-zone').style.display='none';
+  document.getElementById('cart-body').innerHTML=
+    '<div class="field"><label>Nombre y apellido <span class="req">*</span></label>'
+    +'<input type="text" id="ck-nombre" placeholder="Ej: María Pérez">'
+    +'<div class="field-error" id="err-ck-nombre">Ingresa tu nombre.</div></div>'
+    +'<div class="field"><label>Usuario de Instagram <span class="req">*</span></label>'
+    +'<div class="ig-wrap"><span class="ig-prefix">@</span>'
+    +'<input type="text" id="ck-usuario" placeholder="tu_usuario" oninput="this.value=this.value.replace(/@/g,\'\')"></div>'
+    +'<div class="field-error" id="err-ck-usuario">Ingresa tu usuario.</div></div>'
+    +'<div class="field"><label>Correo electrónico <span class="req">*</span></label>'
+    +'<input type="email" id="ck-correo" placeholder="Ej: maria@gmail.com">'
+    +'<div class="field-error" id="err-ck-correo">Ingresa un correo válido.</div></div>'
+    +'<div class="checkout-divider"></div>'
+    +'<div class="checkout-title">¿Cómo lo recibes?</div>'
+    +'<div class="toggle-group">'
+    +'<button class="toggle-btn" id="ck-btnRetiro" onclick="setEntrega(\'retiro\')">Retiro en persona</button>'
+    +'<button class="toggle-btn" id="ck-btnEnvio" onclick="setEntrega(\'envio\')">Envío a todo Chile</button>'
+    +'</div>'
+    +'<div class="field-error" id="err-ck-entrega">Elige una opción.</div>'
+    +'<div class="section-retiro" id="ck-secRetiro">'
+    +'<div class="retiro-info"><strong>Paldea Games</strong> — te enviamos la dirección al coordinar.<br>'
+    +'<strong>Lunes a viernes</strong> 10:00–18:30 | <strong>Sábado</strong> 10:00–14:00</div>'
+    +'<div class="row2" style="margin-top:12px">'
+    +'<div class="field"><label>Día preferido <span class="req">*</span></label>'
+    +'<select id="ck-dia"><option value="">Elige</option><option>Lunes</option><option>Martes</option><option>Miércoles</option><option>Jueves</option><option>Viernes</option><option>Sábado</option></select>'
+    +'<div class="field-error" id="err-ck-dia">Elige un día.</div></div>'
+    +'<div class="field"><label>Hora preferida <span class="req">*</span></label>'
+    +'<select id="ck-hora"><option value="">Elige</option>'
+    +['10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'].map(function(h){return '<option>'+h+'</option>';}).join('')
+    +'</select><div class="field-error" id="err-ck-hora">Elige una hora.</div></div>'
+    +'</div></div>'
+    +'<div class="section-envio" id="ck-secEnvio">'
+    +'<div class="row2">'
+    +'<div class="field"><label>RUT <span class="req">*</span></label>'
+    +'<input type="text" id="ck-rut" placeholder="12345678-9" maxlength="12" oninput="formatRut(this)">'
+    +'<div class="field-error" id="err-ck-rut">Ingresa tu RUT.</div></div>'
+    +'<div class="field"><label>Celular <span class="req">*</span></label>'
+    +'<div class="cel-wrap"><span class="cel-prefix">+569</span>'
+    +'<input type="tel" id="ck-celular" placeholder="12345678" maxlength="8" inputmode="numeric" oninput="this.value=this.value.replace(/\\D/g,\'\').slice(0,8)"></div>'
+    +'<div class="field-error" id="err-ck-celular">Ingresa 8 dígitos.</div></div>'
+    +'</div>'
+    +'<div class="field"><label>Dirección de envío <span class="req">*</span></label>'
+    +'<input type="text" id="ck-direccion" placeholder="Ej: Av. Providencia 1234, Santiago">'
+    +'<div class="field-error" id="err-ck-direccion">Ingresa tu dirección.</div></div>'
+    +'</div>'
+    +'<div class="checkout-row-btns">'
+    +'<button class="checkout-back" onclick="volverAlCarrito()">Volver</button>'
+    +'<button class="checkout-submit" id="ck-submit" onclick="enviarPedido()">Enviar pedido</button>'
+    +'</div>';
+}
+
+function setEntrega(modo){
+  entregaMode=modo;
+  document.getElementById('ck-btnRetiro').className='toggle-btn'+(modo==='retiro'?' active-retiro':'');
+  document.getElementById('ck-btnEnvio').className='toggle-btn'+(modo==='envio'?' active-envio':'');
+  document.getElementById('ck-secRetiro').className='section-retiro'+(modo==='retiro'?' show':'');
+  document.getElementById('ck-secEnvio').className='section-envio'+(modo==='envio'?' show':'');
+}
+function formatRut(el){
+  var v=el.value.replace(/[^0-9kK]/g,'');
+  if(v.length<2){el.value=v;return;}
+  el.value=v.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+'-'+v.slice(-1);
+}
+function ckVal(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+function ckErr(id,s){var e=document.getElementById('err-'+id);if(e) e.className='field-error'+(s?' show':'');}
+
+function validarForm(){
+  var ok=true;
+  if(!ckVal('ck-nombre')){ckErr('ck-nombre',true);ok=false;}else ckErr('ck-nombre',false);
+  if(!ckVal('ck-usuario')){ckErr('ck-usuario',true);ok=false;}else ckErr('ck-usuario',false);
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ckVal('ck-correo'))){ckErr('ck-correo',true);ok=false;}else ckErr('ck-correo',false);
+  if(!entregaMode){ckErr('ck-entrega',true);ok=false;}else ckErr('ck-entrega',false);
+  if(entregaMode==='retiro'){
+    if(!ckVal('ck-dia')){ckErr('ck-dia',true);ok=false;}else ckErr('ck-dia',false);
+    if(!ckVal('ck-hora')){ckErr('ck-hora',true);ok=false;}else ckErr('ck-hora',false);
+  }
+  if(entregaMode==='envio'){
+    if(!ckVal('ck-rut')||ckVal('ck-rut').length<5){ckErr('ck-rut',true);ok=false;}else ckErr('ck-rut',false);
+    if(!/^\d{8}$/.test(ckVal('ck-celular'))){ckErr('ck-celular',true);ok=false;}else ckErr('ck-celular',false);
+    if(!ckVal('ck-direccion')){ckErr('ck-direccion',true);ok=false;}else ckErr('ck-direccion',false);
+  }
+  return ok;
+}
+
+async function enviarPedido(){
+  if(!validarForm()) return;
+  var btn=document.getElementById('ck-submit');
+  btn.disabled=true;btn.textContent='Enviando...';
+  var orderItems=CARRITO.map(function(c){
+    return {nombre:c.nombre,set:'sv3pt5',numero:c.num,rareza:'Reverse',idioma:c.idioma,cantidad:c.qty,precio_clp:c.precio,subtotal:c.precio*c.qty};
+  });
+  var total=orderItems.reduce(function(s,i){return s+i.subtotal;},0);
+  var orderData={
+    carpeta:'XY',
+    cliente:ckVal('ck-nombre'),
+    instagram:'@'+ckVal('ck-usuario').replace('@',''),
+    correo:ckVal('ck-correo'),
+    items:orderItems,
+    entrega:entregaMode,
+    dia:entregaMode==='retiro'?ckVal('ck-dia'):null,
+    hora:entregaMode==='retiro'?ckVal('ck-hora'):null,
+    rut:entregaMode==='envio'?ckVal('ck-rut'):null,
+    celular:entregaMode==='envio'?'+569'+ckVal('ck-celular'):null,
+    direccion:entregaMode==='envio'?ckVal('ck-direccion'):null
+  };
+  try{
+    var res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(orderData)});
+    var data=await res.json();
+    CHECKOUT_VIEW='success';
+    window.LAST_ORDER_ID=data.id||'XY-0001';
+    CARRITO=[];
+    LISTADO_IDS=null;LISTADO_RESUMEN=null;NO_ENCONTRADOS_GLOBAL=[];
+    var b=document.getElementById('listado-banner');if(b)b.remove();
+    var ne=document.getElementById('no-enc-banner');if(ne)ne.remove();
+    actualizarCarritoBtn();renderAll();renderCarritoPanel();
+  }catch(e){
+    alert('Error de conexión. Intenta de nuevo.');
+    btn.disabled=false;btn.textContent='Enviar pedido';
+  }
+}
+
+function renderVistaExito(){
+  document.getElementById('cart-head-title').textContent='Pedido enviado';
+  document.getElementById('cart-footer-zone').style.display='none';
+  document.getElementById('cart-body').innerHTML=
+    '<div class="success-box"><div class="ok-icon">✓</div>'
+    +'<h3>Pedido '+window.LAST_ORDER_ID+' registrado</h3>'
+    +'<p>Te contactaremos por Instagram para confirmar stock y coordinar el pago.</p>'
+    +'<button class="checkout-back" style="margin-top:18px" onclick="cerrarCarrito()">Cerrar</button></div>';
+}
+
+function cambiarQtyCart(cardId,idioma,delta){cambiarQty(cardId,delta,idioma);renderCarritoPanel();}
+function quitarCart(cardId,idioma){
+  var idx=CARRITO.findIndex(function(c){return c.cardId===cardId&&c.idioma===idioma;});
+  if(idx>=0) CARRITO.splice(idx,1);
+  actualizarCarritoBtn();renderCard(cardId);renderCarritoPanel();
+}
+
+// ── Paste listado ────────────────────────────────────────────
+function abrirPaste(){
+  document.getElementById('paste-panel').classList.add('show');
+  document.getElementById('paste-resultado').innerHTML='';
+}
+function cerrarPaste(){document.getElementById('paste-panel').classList.remove('show');}
+
+function procesarPaste(){
+  var raw=document.getElementById('paste-textarea').value;
+  var lineas=raw.indexOf('\n')>=0 ? raw.split('\n') : raw.split(',');
+  lineas=lineas.map(function(l){return l.trim().replace(/[xX,]\s*\d+$/,'').replace(/,+$/,'').trim();}).filter(Boolean);
+  if(!lineas.length) return;
+  var encontrados=[],noEncontrados=[];
+  lineas.forEach(function(nom){
+    var nomLow=nom.toLowerCase();
+    var matches=CARDS.filter(function(c){return c.name.toLowerCase()===nomLow;});
+    if(!matches.length) matches=CARDS.filter(function(c){return c.name.toLowerCase().indexOf(nomLow)>=0;});
+    if(matches.length){ matches.forEach(function(c){if(encontrados.indexOf(c.id)<0) encontrados.push(c.id);}); }
+    else noEncontrados.push(nom);
+  });
+  NO_ENCONTRADOS_GLOBAL=noEncontrados;
+  LISTADO_IDS=encontrados;
+  LISTADO_RESUMEN=encontrados.length+' carta(s) encontrada(s)'+(noEncontrados.length?' · '+noEncontrados.length+' no disponibles':'');
+  cerrarPaste();
+  renderAll();
+  mostrarBannerListado();
+}
+
+function mostrarBannerListado(){
+  var viejo=document.getElementById('listado-banner');
+  if(viejo) viejo.remove();
+  var viejoNE=document.getElementById('no-enc-banner');
+  if(viejoNE) viejoNE.remove();
+  if(!LISTADO_IDS) return;
+  var tm=document.getElementById('tab-main');
+
+  // Banner principal
+  var div=document.createElement('div');
+  div.id='listado-banner';div.className='listado-banner';
+  div.innerHTML='<span>'+LISTADO_RESUMEN+'</span><button onclick="limpiarListado()">Quitar filtro</button>';
+  tm.insertBefore(div,tm.firstChild);
+
+  // Caja de no encontradas (copiable)
+  if(NO_ENCONTRADOS_GLOBAL&&NO_ENCONTRADOS_GLOBAL.length>0){
+    var ne=document.createElement('div');
+    ne.id='no-enc-banner';ne.className='no-enc-box';
+    ne.innerHTML='<div class="titulo">✗ No disponibles ('+NO_ENCONTRADOS_GLOBAL.length+') — selecciona el texto para copiar:</div>'
+      +'<div class="texto">'+NO_ENCONTRADOS_GLOBAL.join(', ')+'</div>';
+    tm.insertBefore(ne,div.nextSibling);
+  }
+}
+function limpiarListado(){LISTADO_IDS=null;LISTADO_RESUMEN=null;NO_ENCONTRADOS_GLOBAL=[];var b=document.getElementById('listado-banner');if(b)b.remove();var ne=document.getElementById('no-enc-banner');if(ne)ne.remove();renderAll();}
+
+
+document.addEventListener('wheel',function(e){
+  if(e.ctrlKey) e.preventDefault();
+},{passive:false});
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey&&(e.key==='+'||e.key==='-'||e.key==='='||e.key==='0')) e.preventDefault();
+});
+
+window.addEventListener('load',function(){ renderAll(); syncGAS(); ajustarOffset(); });
+</script>
+</body>
+</html>
