@@ -235,6 +235,18 @@ var CHECKOUT_VIEW='cart',entregaMode='';
 function skey(nombre,idioma){ return nombre.toLowerCase()+'|reverse|'+idioma; }
 function clp(n){ return '$\u00a0'+Math.round(n).toLocaleString('es-CL'); }
 
+
+function actualizarHorasRetiroXY(){
+  var dia=document.getElementById('ck-dia').value;
+  var sel=document.getElementById('ck-hora');
+  if(!sel) return;
+  var max=(dia==='Sábado')?'14:00':'18:00';
+  var todas=['10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
+  var html='<option value="">Elige</option>';
+  todas.forEach(function(h){ if(h<=max) html+='<option>'+h+'</option>'; });
+  sel.innerHTML=html;
+}
+
 async function syncGAS(){
   var bar=document.getElementById('syncBar');
   bar.className='sync-bar show'; bar.textContent='Cargando precios y stock...';
@@ -610,8 +622,8 @@ function renderVistaFormulario(){
     +'<div class="section-retiro" id="ck-secRetiro">'
     +'<div class="retiro-info"><strong>Paldea Games</strong> — te enviamos la dirección al coordinar.<br><strong>Lun–Vie</strong> 10:00–18:30 | <strong>Sáb</strong> 10:00–14:00</div>'
     +'<div class="row2" style="margin-top:12px">'
-    +'<div class="field"><label>Día <span class="req">*</span></label><select id="ck-dia"><option value="">Elige</option><option>Lunes</option><option>Martes</option><option>Miércoles</option><option>Jueves</option><option>Viernes</option><option>Sábado</option></select><div class="field-error" id="err-ck-dia">Elige un día.</div></div>'
-    +'<div class="field"><label>Hora <span class="req">*</span></label><select id="ck-hora"><option value="">Elige</option><option>10:00</option><option>10:30</option><option>11:00</option><option>11:30</option><option>12:00</option><option>12:30</option><option>13:00</option><option>13:30</option><option>14:00</option><option>14:30</option><option>15:00</option><option>15:30</option><option>16:00</option><option>16:30</option><option>17:00</option><option>17:30</option><option>18:00</option></select><div class="field-error" id="err-ck-hora">Elige una hora.</div></div>'
+    +'<div class="field"><label>Día <span class="req">*</span></label><select id="ck-dia" onchange="actualizarHorasRetiroXY()"><option value="">Elige</option><option>Lunes</option><option>Martes</option><option>Miércoles</option><option>Jueves</option><option>Viernes</option><option>Sábado</option></select><div class="field-error" id="err-ck-dia">Elige un día.</div></div>'
+    +'<div class="field"><label>Hora <span class="req">*</span></label><select id="ck-hora"><option value="">Elige</option></select><div class="field-error" id="err-ck-hora">Elige una hora.</div></div>'
     +'</div></div>'
     +'<div class="section-envio" id="ck-secEnvio">'
     +'<div class="row2"><div class="field"><label>RUT <span class="req">*</span></label><input type="text" id="ck-rut" placeholder="12345678-9" maxlength="12" oninput="formatRut(this)"><div class="field-error" id="err-ck-rut">Ingresa tu RUT.</div></div>'
@@ -667,9 +679,8 @@ async function enviarPedido(){
     rut:entregaMode==='envio'?ckVal('ck-rut'):null,celular:entregaMode==='envio'?'+569'+ckVal('ck-celular'):null,
     direccion:entregaMode==='envio'?ckVal('ck-direccion'):null};
   try{
-    var res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(orderData)});
-    var data=await res.json();
-    window.LAST_ORDER_ID=data.id||'XY-0001';
+    await fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(orderData)});
+    window.LAST_ORDER_ID='XY-0001';
     CARRITO=[];
     LISTADO_IDS=null;LISTADO_RESUMEN=null;NO_ENCONTRADOS_GLOBAL=[];
     CHECKOUT_VIEW='success';
