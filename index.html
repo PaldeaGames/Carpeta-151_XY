@@ -322,6 +322,12 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 .visor-x{position:absolute;top:16px;right:16px;width:42px;height:42px;border-radius:50%;border:1px solid var(--brd2);background:var(--surf2);color:var(--tx);font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
 .visor-x:hover{background:var(--red);color:#fff;border-color:var(--red)}
 .visor-cap{font-size:.85rem;color:var(--txm);font-weight:600;text-align:center}
+
+/* ===== Fix salto de pagina: las imagenes reservan su espacio ===== */
+.ri-img{aspect-ratio:5/7;height:auto}
+.alt-thumb img{aspect-ratio:5/7}
+.ag-img{aspect-ratio:5/7}
+.cart-item img{aspect-ratio:5/7}
 </style>
 </head>
 <body>
@@ -1439,7 +1445,13 @@ function renderCotizacion(){
   }
 
   h+=buildResumenPK();
+  // Conservar la posicion del scroll: sin esto, al redibujar los
+  // resultados el contenido colapsaba un instante y el navegador
+  // movia la vista (el "salto" de pagina al usar + / -).
+  var cuerpoLista=cont.closest('.paste-body');
+  var scrollGuardado=cuerpoLista?cuerpoLista.scrollTop:0;
   cont.innerHTML=h;
+  if(cuerpoLista) cuerpoLista.scrollTop=scrollGuardado;
   actualizarFooterLista();
 }
 
@@ -1746,10 +1758,15 @@ function moverEnCarritoPK(e,uidNuevo,idiomaNuevo){
   return agregar;
 }
 // Si tras el cambio no quedo nada en el carrito, la linea vuelve a la lista
-function finCambioAgregadaPK(e,quedo){
+function finCambioAgregadaPK(e,quedo,uidAnterior){
   e.enCarrito=quedo; e.dispManual=null;
   if(quedo===0){ e.agregada=false; e.off=false; }
-  actualizarCarritoBtn(); renderAll(); renderCotizacion();
+  actualizarCarritoBtn();
+  // Solo se actualizan las tarjetas afectadas en la grilla, no toda la
+  // pagina (renderAll redibujaba la grilla completa y saltaba la vista)
+  if(uidAnterior) renderCard(uidAnterior);
+  renderCard(e.found[0]);
+  renderCotizacion();
 }
 function cambiarQtyAgregadaPK(idx,d){
   var e=COTIZ[idx]; if(!e) return;
@@ -1759,34 +1776,36 @@ function cambiarRarezaAgregadaPK(idx,uid){
   var e=COTIZ[idx]; if(!e) return;
   var nuevo=CARDS.find(function(c){return c[0]===parseInt(uid,10);});
   if(!nuevo) return;
+  var uidAnterior=e.found[0];
   var idm=idiomaActivo(nuevo);
   var quedo=moverEnCarritoPK(e,nuevo[0],idm);
   e.found=nuevo; e.idioma=idm;
-  finCambioAgregadaPK(e,quedo);
+  finCambioAgregadaPK(e,quedo,uidAnterior);
 }
 function cambiarCartaAgregadaPK(idx,uid){
   var e=COTIZ[idx]; if(!e) return;
   var base=CARDS.find(function(c){return c[0]===parseInt(uid,10);});
   if(!base) return;
+  var uidAnterior=e.found[0];
   e.grupo=grupoDeCarta(base);
   var nuevo=elegirVariante(e.grupo);
   var idm=idiomaActivo(nuevo);
   var quedo=moverEnCarritoPK(e,nuevo[0],idm);
   e.found=nuevo; e.idioma=idm; e.fase=1;
-  finCambioAgregadaPK(e,quedo);
+  finCambioAgregadaPK(e,quedo,uidAnterior);
 }
 function cambiarIdiomaAgregadaPK(idx,idm){
   var e=COTIZ[idx]; if(!e) return;
   var quedo=moverEnCarritoPK(e,e.found[0],idm);
   e.idioma=idm;
-  finCambioAgregadaPK(e,quedo);
+  finCambioAgregadaPK(e,quedo,e.found[0]);
 }
 function quitarAgregadaPK(idx){
   var e=COTIZ[idx]; if(!e) return;
   var i=CARRITO.findIndex(function(c){return c.cardId===e.found[0]&&c.idioma===e.idioma;});
   if(i>=0) CARRITO.splice(i,1);
   e.agregada=false; e.off=false; e.enCarrito=0; e.dispManual=null;
-  actualizarCarritoBtn(); renderAll(); renderCotizacion();
+  actualizarCarritoBtn(); renderCard(e.found[0]); renderCotizacion();
 }
 
 function toggleNopePK(btn){
@@ -1940,7 +1959,10 @@ function renderVistaCarrito(){
       +'<button class="cart-remove" onclick="quitarCart('+c.cardId+',\''+c.idioma+'\')">x</button>'
       +'</div>';
   });
+  // Conservar el scroll del carrito al redibujar (misma causa del salto)
+  var scrollCarrito=body.scrollTop;
   body.innerHTML=h;
+  body.scrollTop=scrollCarrito;
   document.getElementById('cart-total').textContent=clp(total);
 }
 
