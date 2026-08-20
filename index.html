@@ -281,17 +281,17 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 .carrito-strip strong{color:var(--gold);font-family:'Syne',sans-serif}
 
 /* ===== Cambios: rareza visible, numero de set, miniaturas, panel ancho ===== */
-.sn{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.sn{display:flex;align-items:baseline;gap:10px}
 .sn-num{font-family:monospace;font-size:.68rem;color:var(--txm);flex-shrink:0}
 .rn{font-size:.71rem;color:var(--gold);margin:1px 0 6px}
 .alt-label{font-size:.7rem;color:var(--txm);margin-top:8px;font-weight:600}
 .alt-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
-.alt-thumb{width:62px;cursor:pointer;text-align:center;filter:grayscale(1);opacity:.5;transition:all .15s;border:2px solid transparent;border-radius:8px;padding:3px;background:#050510;flex-shrink:0}
+.alt-thumb{width:48px;cursor:pointer;text-align:center;filter:grayscale(1);opacity:.5;transition:all .15s;border:2px solid transparent;border-radius:8px;padding:3px;background:#050510;flex-shrink:0}
 .alt-thumb:hover{opacity:.85;filter:grayscale(.35)}
 .alt-thumb.sel{filter:none;opacity:1;border-color:var(--accent);box-shadow:0 0 8px rgba(232,255,71,.25)}
 .alt-thumb img{width:100%;border-radius:5px;display:block}
 .alt-thumb .alt-ph{font-size:.55rem;color:var(--txm);padding:14px 2px}
-.alt-thumb span{font-size:.58rem;color:var(--txm);display:block;margin-top:3px;line-height:1.25;word-break:break-word}
+.alt-thumb span{font-size:.55rem;color:var(--txm);display:block;margin-top:3px;line-height:1.25;word-break:break-word}
 .alt-thumb.sel span{color:var(--accent);font-weight:700}
 .ag-img{width:30px;border-radius:4px;flex-shrink:0;filter:grayscale(.7);opacity:.75;background:#050510}
 .copiar-falt-btn{width:100%;margin-top:12px;padding:11px 12px;border-radius:9px;border:1px dashed var(--accent);background:var(--accent-dim);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s}
@@ -303,11 +303,11 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 @media (min-width:900px){
   .paste-drawer{width:100vw;border-left:none}
   .paste-body{flex-direction:row;gap:26px;padding:18px 28px}
-  .paste-izq{width:340px;flex-shrink:0;display:flex;flex-direction:column;gap:10px}
+  .paste-izq{width:320px;flex-shrink:0;display:flex;flex-direction:column;gap:10px}
   .paste-izq textarea{min-height:220px}
-  #paste-resultado{flex:1;min-width:0;column-width:430px;column-gap:14px}
-  #paste-resultado>*{break-inside:avoid}
-  #paste-resultado .sec-label{break-after:avoid}
+  /* Listado ordenado: una fila bajo la otra, ancho acotado para que
+     no se estire de mas en pantallas muy grandes */
+  #paste-resultado{flex:1;min-width:0;max-width:1150px}
 }
 </style>
 </head>
@@ -511,6 +511,10 @@ function vCls(rareza){
    El codigo interno (NRML, RETH, etc.) se sigue usando en los datos
    y en el pedido que llega a la planilla; esto solo traduce lo visible. */
 var NOMBRES_RAREZA={'NRML':'Normal','RETH':'Reverse','REV-H':'Reverse','HOLO':'Hologr\u00e1fica'};
+var NOMBRES_IDIOMA={'ESP':'Espa\u00f1ol','ENG':'Ingl\u00e9s','JAP':'Japon\u00e9s','POR':'Portugu\u00e9s','CHI':'Chino','FRA':'Franc\u00e9s'};
+function nombreIdioma(i){
+  return NOMBRES_IDIOMA[String(i||'').toUpperCase()]||i;
+}
 function nombreRareza(r){
   var u=String(r||'').toUpperCase();
   return NOMBRES_RAREZA[u]||r;
@@ -604,7 +608,7 @@ function buildSetsOptions(){
   return sets.map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('');
 }
 function buildIdiomasOptions(){
-  return IDIOMAS.map(function(i){return '<option value="'+i+'">'+i+'</option>';}).join('');
+  return IDIOMAS.map(function(i){return '<option value="'+i+'">'+nombreIdioma(i)+'</option>';}).join('');
 }
 
 function build(){
@@ -1076,7 +1080,18 @@ function buscarItemPK(item){
       var b=buscablePK(c);
       return item.numericos.every(function(t){return b.indexOf(t)>=0;});
     });
-    if(f0.length) return {fase:1, matches:f0};
+    if(f0.length){
+      // Nombre exacto primero: "mew" muestra Mew antes que Mew ex o
+      // Mewtwo. Los nombres que solo CONTIENEN lo escrito van despues,
+      // como alternativas.
+      var buscado=item.textuales.join(' ');
+      f0.sort(function(a,b){
+        var ea=(normPK(a[1])===buscado)?0:1;
+        var eb=(normPK(b[1])===buscado)?0:1;
+        return ea-eb;
+      });
+      return {fase:1, matches:f0};
+    }
   }
   // Fase 1: todos los tokens
   var f1=CARDS.filter(function(c){return matchTokens(c,item.tokens);});
@@ -1163,9 +1178,23 @@ function cotizarListaPK(){
 
   // Filtrar la grilla principal a las cartas de la lista, con banner
   // para quitar el filtro. Reusa el mecanismo LISTADO_IDS.
-  LISTADO_IDS = COTIZ.length ? COTIZ.map(function(e){return e.found[0];}) : null;
+  // La grilla filtrada muestra TODAS las opciones de cada linea
+  // (todos los sets y rarezas posibles), no solo la elegida en el
+  // panel. Asi la persona puede cerrar el listado y hacer toda la
+  // seleccion (carta, idioma, cantidad) directamente en la grilla.
+  LISTADO_IDS=null;
+  if(COTIZ.length){
+    var idsLista=[];
+    COTIZ.forEach(function(e){
+      if(e.off) return;
+      e.alternativas.forEach(function(g){
+        g.forEach(function(c){ if(idsLista.indexOf(c[0])<0) idsLista.push(c[0]); });
+      });
+    });
+    LISTADO_IDS=idsLista.length?idsLista:null;
+  }
   LISTADO_RESUMEN = LISTADO_IDS
-    ? (COTIZ.length+' carta(s) de tu lista'+(COTIZ_NOPE.length?' \u00B7 '+COTIZ_NOPE.length+' sin coincidencia':''))
+    ? (COTIZ.length+' carta(s) de tu lista \u00B7 todas sus opciones abajo'+(COTIZ_NOPE.length?' \u00B7 '+COTIZ_NOPE.length+' sin coincidencia':''))
     : null;
   renderCotizacion();
   renderAll();
@@ -1285,7 +1314,7 @@ function renderCotizacion(){
       var r=o.e.found;
       h+='<div class="ag-row">'
         +'<div class="ag-info"><span class="ag-nom">'+escHtml(o.e.item.display)+'</span>'
-        +'<span class="ag-meta">es la misma carta que '+r[2].toUpperCase()+' '+r[3]+', ya contada arriba</span></div>'
+        +'<span class="ag-meta">es la misma carta que '+r[6]+' N\u00B0 '+r[3]+', ya contada arriba</span></div>'
         +'<span class="ag-qty">x'+o.e.item.qty+'</span>'
         +'<button class="ri-x" onclick="toggleOffCotiz('+o.idx+')" title="Quitar de la lista">\u2715</button>'
         +'</div>';
@@ -1301,7 +1330,7 @@ function renderCotizacion(){
       var enCar=(CARRITO.find(function(c){return c.cardId===r[0]&&c.idioma===o.e.idioma;})||{}).qty||0;
       h+='<div class="ag-row">'
         +'<div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 ya tienes '+enCar+' de '+getStock(r,o.e.idioma)+'</span></div>'
+        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 ya tienes '+enCar+' de '+getStock(r,o.e.idioma)+'</span></div>'
         +'<span class="ag-qty">x'+o.e.item.qty+'</span>'
         +'<button class="ri-x" onclick="toggleOffCotiz('+o.idx+')" title="Quitar de la lista">\u2715</button>'
         +'</div>';
@@ -1318,7 +1347,7 @@ function renderCotizacion(){
       h+='<div class="ag-row">'
         +(uA?'<img class="ag-img" src="'+uA+'" alt="'+escHtml(r[1])+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
         +'<div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span></div>'
+        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span></div>'
         +'<span class="ag-qty">x'+o.e.item.qty+'</span>'
         +'<button class="ri-x" onclick="toggleOffCotiz('+o.idx+')" title="Quitar de la lista">\u2715</button>'
         +'</div>';
@@ -1333,7 +1362,7 @@ function renderCotizacion(){
     agregadas.forEach(function(o){
       var r=o.e.found;
       h+='<div class="ag-row"><div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 '+o.e.idioma+'</span></div>'
+        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 '+o.e.idioma+'</span></div>'
         +'<span class="ag-qty" style="color:var(--green)">x'+(o.e.enCarrito||0)+'</span></div>';
     });
     h+='</div>';
@@ -1346,7 +1375,7 @@ function renderCotizacion(){
     quitadas.forEach(function(o){
       var r=o.e.found;
       h+='<div class="ag-row"><div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span></div>'
+        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span></div>'
         +'<span class="ag-qty">x'+o.e.item.qty+'</span>'
         +'<button class="ri-x" onclick="toggleOffCotiz('+o.idx+')" title="Restaurar">\u21BA</button></div>';
     });
@@ -1432,8 +1461,8 @@ function buildRiPK(e,idx){
 
   // aviso de fase (equivalente a "Pediste -> Tenemos" de Metagame)
   var aviso='';
-  if(e.fase===2) aviso+='<div class="ri-aviso ri-aviso-set">Pediste: '+escHtml(e.item.display)+' \u2192 Tenemos: '+r[2].toUpperCase()+' '+r[3]+'</div>';
-  else if(e.fase===3) aviso+='<div class="ri-aviso ri-aviso-set">No hubo match exacto. Te mostramos: '+escHtml(r[1])+' '+r[2].toUpperCase()+' '+r[3]+'</div>';
+  if(e.fase===2) aviso+='<div class="ri-aviso ri-aviso-set">Pediste: '+escHtml(e.item.display)+' \u2192 Tenemos: '+r[6]+' N\u00B0 '+r[3]+'</div>';
+  else if(e.fase===3) aviso+='<div class="ri-aviso ri-aviso-set">No hubo match exacto. Te mostramos: '+escHtml(r[1])+' '+r[6]+' N\u00B0 '+r[3]+'</div>';
 
   // aviso de idioma
   var carg=idiomasCargados(r), disp=idiomasDisponibles(r);
@@ -1457,7 +1486,7 @@ function buildRiPK(e,idx){
       +e.alternativas.map(function(g){
         var c=elegirVariante(g);
         var sel=(normPK(c[1])===normPK(r[1])&&normPK(c[2])===normPK(r[2])&&normPK(c[3])===normPK(r[3]))?' selected':'';
-        return '<option value="'+c[0]+'"'+sel+'>'+c[2].toUpperCase()+' '+c[3]+'</option>';
+        return '<option value="'+c[0]+'"'+sel+'>'+c[6]+' N\u00B0 '+c[3]+'</option>';
       }).join('')+'</select>';
   }
   // Miniaturas visuales de las alternativas: cuando la linea calza con
@@ -1502,7 +1531,7 @@ function buildRiPK(e,idx){
     +(url?'<img class="ri-img" src="'+url+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
     +'<div class="ri-body">'
       +'<div class="ri-name">'+escHtml(r[1])+'</div>'
-      +'<div class="ri-meta">'+r[6]+' \u00B7 '+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 pediste x'+e.item.qty+'</div>'
+      +'<div class="ri-meta">'+r[6]+' \u00B7 N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 pediste x'+e.item.qty+'</div>'
       +aviso+thumbs
       +'<div class="ri-ctrls">'+selAlt+selRar+langs+qtyHtml+'</div>'
       +'<div class="ri-badges">'+badges+'</div>'
@@ -1737,7 +1766,7 @@ function renderVistaCarrito(){
     if(c.img) h+='<img src="'+c.img+'" alt="'+escHtml(c.nombre)+'" data-idx="0" onerror="imgFallbackCart(this,'+c.cardId+',parseInt(this.getAttribute(\'data-idx\'),10))">';
     h+='<div class="cart-item-info">'
       +'<div class="cart-item-name">'+escHtml(c.nombre)+'</div>'
-      +'<div class="cart-item-meta">'+escHtml(nombreRareza(c.rareza))+' - '+c.idioma+' - '+escHtml(c.set||'\u2014')+' '+escHtml(c.num||'')+'</div>'
+      +'<div class="cart-item-meta">'+escHtml(nombreRareza(c.rareza))+' - '+c.idioma+' - '+escHtml(c.setNombre||c.set||'\u2014')+' '+escHtml(c.num||'')+'</div>'
       +'<div style="font-size:.72rem;color:var(--txm);margin-top:2px">'+clp(c.precio)+' x '+c.qty+'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0">'
