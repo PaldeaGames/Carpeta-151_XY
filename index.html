@@ -279,6 +279,36 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 .cotiz-aviso{display:none;background:rgba(124,92,191,.14);border:1px solid var(--acc);border-radius:8px;padding:9px 12px;margin:10px 0 0;font-size:.76rem;color:#cdb8ff;line-height:1.45}
 .carrito-strip{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;padding:9px 12px;border-radius:9px;background:var(--surf2);border:1px solid var(--brd);font-size:.74rem;color:var(--txm)}
 .carrito-strip strong{color:var(--gold);font-family:'Syne',sans-serif}
+
+/* ===== Cambios: rareza visible, numero de set, miniaturas, panel ancho ===== */
+.sn{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.sn-num{font-family:monospace;font-size:.68rem;color:var(--txm);flex-shrink:0}
+.rn{font-size:.71rem;color:var(--gold);margin:1px 0 6px}
+.alt-label{font-size:.7rem;color:var(--txm);margin-top:8px;font-weight:600}
+.alt-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+.alt-thumb{width:62px;cursor:pointer;text-align:center;filter:grayscale(1);opacity:.5;transition:all .15s;border:2px solid transparent;border-radius:8px;padding:3px;background:#050510;flex-shrink:0}
+.alt-thumb:hover{opacity:.85;filter:grayscale(.35)}
+.alt-thumb.sel{filter:none;opacity:1;border-color:var(--accent);box-shadow:0 0 8px rgba(232,255,71,.25)}
+.alt-thumb img{width:100%;border-radius:5px;display:block}
+.alt-thumb .alt-ph{font-size:.55rem;color:var(--txm);padding:14px 2px}
+.alt-thumb span{font-size:.58rem;color:var(--txm);display:block;margin-top:3px;line-height:1.25;word-break:break-word}
+.alt-thumb.sel span{color:var(--accent);font-weight:700}
+.ag-img{width:30px;border-radius:4px;flex-shrink:0;filter:grayscale(.7);opacity:.75;background:#050510}
+.copiar-falt-btn{width:100%;margin-top:12px;padding:11px 12px;border-radius:9px;border:1px dashed var(--accent);background:var(--accent-dim);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s}
+.copiar-falt-btn:hover{background:rgba(232,255,71,.2)}
+.copiar-falt-btn.copiado{border-style:solid;border-color:var(--green);color:var(--green);background:rgba(71,255,178,.1)}
+/* En PC el panel del listado ocupa toda la pantalla: texto a la
+   izquierda y resultados a la derecha en columnas. En el celular
+   queda igual que antes. */
+@media (min-width:900px){
+  .paste-drawer{width:100vw;border-left:none}
+  .paste-body{flex-direction:row;gap:26px;padding:18px 28px}
+  .paste-izq{width:340px;flex-shrink:0;display:flex;flex-direction:column;gap:10px}
+  .paste-izq textarea{min-height:220px}
+  #paste-resultado{flex:1;min-width:0;column-width:430px;column-gap:14px}
+  #paste-resultado>*{break-inside:avoid}
+  #paste-resultado .sec-label{break-after:avoid}
+}
 </style>
 </head>
 <body>
@@ -321,13 +351,15 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
   <div class="paste-drawer">
     <div class="cart-head"><h2>Pegar listado</h2><button class="cart-close" onclick="cerrarPegarListado()">x</button></div>
     <div class="paste-body">
-      <div class="lista-hint">Pega tu lista, <b>una carta por línea</b>. Reconoce varios formatos:
-        <div class="lista-ej">4 Bulbasaur MEW 1<br>2 Charmander Scarlet Violet 151<br>Pikachu MEW 25<br>Squirtle x3<br>Bulbasaur 1</div>
-      </div>
-      <textarea id="paste-textarea" placeholder="4 Bulbasaur MEW 1&#10;2 Charmander Scarlet Violet 151&#10;Squirtle x3&#10;Bulbasaur 1"></textarea>
-      <div style="display:flex;gap:8px">
-        <button class="vb" style="flex:1;padding:9px" onclick="cotizarListaPK()">Cotizar lista</button>
-        <button class="vb" style="padding:9px 14px" onclick="limpiarListaPK()" title="Vacia el texto, la cotizacion y el carrito">Limpiar todo</button>
+      <div class="paste-izq">
+        <div class="lista-hint">Pega tu lista, <b>una carta por línea</b>. Reconoce varios formatos:
+          <div class="lista-ej">4 Bulbasaur MEW 1<br>2 Charmander Scarlet Violet 151<br>Pikachu MEW 25<br>Squirtle x3<br>Bulbasaur 1</div>
+        </div>
+        <textarea id="paste-textarea" placeholder="4 Bulbasaur MEW 1&#10;2 Charmander Scarlet Violet 151&#10;Squirtle x3&#10;Bulbasaur 1"></textarea>
+        <div style="display:flex;gap:8px">
+          <button class="vb" style="flex:1;padding:9px" onclick="cotizarListaPK()">Cotizar lista</button>
+          <button class="vb" style="padding:9px 14px" onclick="limpiarListaPK()" title="Vacia el texto, la cotizacion y el carrito">Limpiar todo</button>
+        </div>
       </div>
       <div id="paste-resultado"></div>
     </div>
@@ -475,6 +507,15 @@ function vCls(rareza){
   if(l.indexOf('TRT')===0)return 'ven';
   return 'vnrm';
 }
+/* Nombre completo de la rareza para mostrar al cliente.
+   El codigo interno (NRML, RETH, etc.) se sigue usando en los datos
+   y en el pedido que llega a la planilla; esto solo traduce lo visible. */
+var NOMBRES_RAREZA={'NRML':'Normal','RETH':'Reverse','REV-H':'Reverse','HOLO':'Hologr\u00e1fica'};
+function nombreRareza(r){
+  var u=String(r||'').toUpperCase();
+  return NOMBRES_RAREZA[u]||r;
+}
+
 function vIcon(rareza){
   var l=String(rareza).toUpperCase();
   if(l==='REV-H')return '\u2B21 ';
@@ -554,7 +595,7 @@ async function syncGAS(){
 
 /* ===================== BUILD UI ===================== */
 function buildRarezasOptions(){
-  return RAREZAS.map(function(r){return '<option value="'+r+'">'+r+'</option>';}).join('');
+  return RAREZAS.map(function(r){return '<option value="'+r+'">'+nombreRareza(r)+'</option>';}).join('');
 }
 function buildSetsOptions(){
   var sets=[];
@@ -762,15 +803,15 @@ function buildCardHtml(r){
   }
 
   var agotadoOverlay=agotado?'<div class="agotado-center">Agotado</div>':'';
-  var vbdgHtml='<span class="vbdg '+vCls(r[4])+'">'+vIcon(r[4])+r[4]+'</span>';
+  var vbdgHtml='<span class="vbdg '+vCls(r[4])+'">'+vIcon(r[4])+nombreRareza(r[4])+'</span>';
 
   return '<div class="ci'+(isR?' rev':'')+(agotado?' agotado':'')+'">'
     +'<div class="imgw">'+imgHtml+agotadoOverlay+'</div>'
     +vbdgHtml
     +'<div class="info">'
     +'<div class="pn">'+escHtml(r[1])+'</div>'
-    +'<div class="sn">'+escHtml(r[6])+'</div>'
-    +'<div class="cn">'+escHtml(r[2]||'\u2014')+' - '+escHtml(r[3]||'\u2014')+'</div>'
+    +'<div class="sn">'+escHtml(r[6])+(r[3]?'<span class="sn-num">'+escHtml(r[3])+'</span>':'')+'</div>'
+    +'<div class="rn">Rareza: '+escHtml(nombreRareza(r[4]))+'</div>'
     +langHtml
     +precioHtml
     +'</div></div>';
@@ -836,7 +877,7 @@ function buildRowHtml(r){
   return '<td>'+imgHtml+'</td>'
     +'<td><strong>'+escHtml(r[1])+'</strong></td>'
     +'<td style="font-size:.78rem;color:var(--txm)">'+escHtml(r[6])+'</td>'
-    +'<td><span class="vbdg '+vCls(r[4])+'" style="position:static;display:inline-block">'+vIcon(r[4])+r[4]+'</span></td>'
+    +'<td><span class="vbdg '+vCls(r[4])+'" style="position:static;display:inline-block">'+vIcon(r[4])+nombreRareza(r[4])+'</span></td>'
     +(GAS_LOADED?'<td>'+langCell+'</td><td>'+precioCell+'</td><td>'+stkCell+'</td><td>'+cartCell+'</td>':'');
 }
 
@@ -1021,6 +1062,22 @@ function grupoDeCarta(c){
 }
 
 function buscarItemPK(item){
+  // Fase 0: los tokens textuales calzan en el NOMBRE de la carta.
+  // Sin esta fase, una palabra que tambien es codigo de set (ej. "mew",
+  // codigo del set 151) calzaba con TODAS las cartas de ese set y la
+  // cotizacion devolvia la primera con stock (ej. Kakuna) en vez del
+  // Pokemon con ese nombre. El nombre manda sobre los codigos internos.
+  if(item.textuales.length){
+    var f0=CARDS.filter(function(c){
+      var nom=normPK(c[1]);
+      var okTxt=item.textuales.every(function(t){return nom.indexOf(t)>=0;});
+      if(!okTxt) return false;
+      if(!item.numericos.length) return true;
+      var b=buscablePK(c);
+      return item.numericos.every(function(t){return b.indexOf(t)>=0;});
+    });
+    if(f0.length) return {fase:1, matches:f0};
+  }
   // Fase 1: todos los tokens
   var f1=CARDS.filter(function(c){return matchTokens(c,item.tokens);});
   if(f1.length) return {fase:1, matches:f1};
@@ -1244,7 +1301,7 @@ function renderCotizacion(){
       var enCar=(CARRITO.find(function(c){return c.cardId===r[0]&&c.idioma===o.e.idioma;})||{}).qty||0;
       h+='<div class="ag-row">'
         +'<div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+r[4]+' \u00B7 ya tienes '+enCar+' de '+getStock(r,o.e.idioma)+'</span></div>'
+        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 ya tienes '+enCar+' de '+getStock(r,o.e.idioma)+'</span></div>'
         +'<span class="ag-qty">x'+o.e.item.qty+'</span>'
         +'<button class="ri-x" onclick="toggleOffCotiz('+o.idx+')" title="Quitar de la lista">\u2715</button>'
         +'</div>';
@@ -1257,9 +1314,11 @@ function renderCotizacion(){
     h+='<div class="ag-box">';
     agotadas.forEach(function(o){
       var r=o.e.found;
+      var uA=imgUrlFor(r);
       h+='<div class="ag-row">'
+        +(uA?'<img class="ag-img" src="'+uA+'" alt="'+escHtml(r[1])+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
         +'<div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+r[4]+'</span></div>'
+        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span></div>'
         +'<span class="ag-qty">x'+o.e.item.qty+'</span>'
         +'<button class="ri-x" onclick="toggleOffCotiz('+o.idx+')" title="Quitar de la lista">\u2715</button>'
         +'</div>';
@@ -1274,7 +1333,7 @@ function renderCotizacion(){
     agregadas.forEach(function(o){
       var r=o.e.found;
       h+='<div class="ag-row"><div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+r[4]+' \u00B7 '+o.e.idioma+'</span></div>'
+        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 '+o.e.idioma+'</span></div>'
         +'<span class="ag-qty" style="color:var(--green)">x'+(o.e.enCarrito||0)+'</span></div>';
     });
     h+='</div>';
@@ -1287,7 +1346,7 @@ function renderCotizacion(){
     quitadas.forEach(function(o){
       var r=o.e.found;
       h+='<div class="ag-row"><div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+r[4]+'</span></div>'
+        +'<span class="ag-meta">'+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span></div>'
         +'<span class="ag-qty">x'+o.e.item.qty+'</span>'
         +'<button class="ri-x" onclick="toggleOffCotiz('+o.idx+')" title="Restaurar">\u21BA</button></div>';
     });
@@ -1301,6 +1360,12 @@ function renderCotizacion(){
       +'<div class="nope-body">'
       +COTIZ_NOPE.map(function(d){return '<div class="nope-row"><span>'+escHtml(d.display)+'</span><span>x'+d.qty+'</span></div>';}).join('')
       +'</div>';
+  }
+
+  // Boton para copiar las cartas que faltan y seguir cotizando en otro lado
+  var falt=lineasFaltantesPK();
+  if(falt.length){
+    h+='<button class="copiar-falt-btn" onclick="copiarFaltantesPK(this)">Copiar listado de cartas que me faltan ('+falt.length+')</button>';
   }
 
   h+=buildResumenPK();
@@ -1382,7 +1447,7 @@ function buildRiPK(e,idx){
     selRar='<select class="ri-sel" onchange="cambiarRarezaCotiz('+idx+',this.value)">'
       +e.grupo.map(function(c){
         var sinStk=idiomasDisponibles(c).length===0;
-        return '<option value="'+c[0]+'"'+(c[0]===r[0]?' selected':'')+'>'+c[4]+(sinStk?' (sin stock)':'')+'</option>';
+        return '<option value="'+c[0]+'"'+(c[0]===r[0]?' selected':'')+'>'+nombreRareza(c[4])+(sinStk?' (sin stock)':'')+'</option>';
       }).join('')+'</select>';
   }
   // selector de carta alternativa (otro set/numero con el mismo nombre)
@@ -1394,6 +1459,25 @@ function buildRiPK(e,idx){
         var sel=(normPK(c[1])===normPK(r[1])&&normPK(c[2])===normPK(r[2])&&normPK(c[3])===normPK(r[3]))?' selected':'';
         return '<option value="'+c[0]+'"'+sel+'>'+c[2].toUpperCase()+' '+c[3]+'</option>';
       }).join('')+'</select>';
+  }
+  // Miniaturas visuales de las alternativas: cuando la linea calza con
+  // varias cartas (ej. escribieron solo "Charmander"), se muestran las
+  // imagenes de todas las opciones ADEMAS del menu desplegable. La
+  // elegida queda en color y las demas en gris; un clic la selecciona.
+  var thumbs='';
+  if(e.alternativas.length>1){
+    thumbs='<div class="alt-label">Elige la carta que quieres comprar:</div><div class="alt-thumbs">';
+    e.alternativas.forEach(function(g){
+      var rep=elegirVariante(g);
+      var esSel=(normPK(rep[1])===normPK(r[1])&&normPK(rep[2])===normPK(r[2])&&normPK(rep[3])===normPK(r[3]));
+      var cardImg=esSel?r:rep;
+      var u=imgUrlFor(cardImg);
+      thumbs+='<div class="alt-thumb'+(esSel?' sel':'')+'" onclick="cambiarCartaCotiz('+idx+','+rep[0]+')" title="'+escHtml(rep[6])+' '+escHtml(rep[3])+'">'
+        +(u?'<img src="'+u+'" alt="'+escHtml(rep[1])+'" data-idx="0" onerror="imgFallbackCart(this,'+cardImg[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'<div class="alt-ph">Sin imagen</div>')
+        +'<span>'+escHtml(rep[6])+' '+escHtml(rep[3])+'</span>'
+        +'</div>';
+    });
+    thumbs+='</div>';
   }
   // botones de idioma
   var langs='';
@@ -1418,8 +1502,8 @@ function buildRiPK(e,idx){
     +(url?'<img class="ri-img" src="'+url+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
     +'<div class="ri-body">'
       +'<div class="ri-name">'+escHtml(r[1])+'</div>'
-      +'<div class="ri-meta">'+r[6]+' \u00B7 '+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+r[4]+' \u00B7 pediste x'+e.item.qty+'</div>'
-      +aviso
+      +'<div class="ri-meta">'+r[6]+' \u00B7 '+r[2].toUpperCase()+' '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 pediste x'+e.item.qty+'</div>'
+      +aviso+thumbs
       +'<div class="ri-ctrls">'+selAlt+selRar+langs+qtyHtml+'</div>'
       +'<div class="ri-badges">'+badges+'</div>'
     +'</div>'
@@ -1478,6 +1562,43 @@ function buildResumenPK(){
 }
 
 /* ---------- ACCIONES ---------- */
+// Arma el listado de cartas que faltan: las sin stock (cantidad
+// completa), la parte que no alcanzo de las parciales, y las lineas
+// sin coincidencia. Las repetidas y las que ya estan en el carrito
+// no van, porque esas el cliente ya las tiene cubiertas.
+function lineasFaltantesPK(){
+  var ls=[];
+  COTIZ.forEach(function(e){
+    if(e.off) return;
+    if(e.estado==='sin'&&e.motivo!=='dup'&&e.motivo!=='carrito') ls.push(e.item.qty+' '+e.item.display);
+    else if(e.estado==='parcial'&&e.disp<e.item.qty) ls.push((e.item.qty-e.disp)+' '+e.item.display);
+  });
+  COTIZ_NOPE.forEach(function(d){ ls.push(d.qty+' '+d.display); });
+  return ls;
+}
+function copiarFaltantesPK(btn){
+  var ls=lineasFaltantesPK();
+  if(!ls.length) return;
+  var txt=ls.join('\n');
+  var aviso=function(){
+    if(!btn) return;
+    var t=btn.textContent;
+    btn.textContent='Listo, copiado. Pegalo donde quieras';
+    btn.classList.add('copiado');
+    setTimeout(function(){ btn.textContent=t; btn.classList.remove('copiado'); },2200);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(aviso,function(){ fallbackCopiarPK(txt); aviso(); });
+  } else { fallbackCopiarPK(txt); aviso(); }
+}
+function fallbackCopiarPK(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  ta.remove();
+}
+
 function toggleNopePK(btn){
   var b=btn.nextElementSibling;
   b.style.display=b.style.display==='block'?'none':'block';
@@ -1616,7 +1737,7 @@ function renderVistaCarrito(){
     if(c.img) h+='<img src="'+c.img+'" alt="'+escHtml(c.nombre)+'" data-idx="0" onerror="imgFallbackCart(this,'+c.cardId+',parseInt(this.getAttribute(\'data-idx\'),10))">';
     h+='<div class="cart-item-info">'
       +'<div class="cart-item-name">'+escHtml(c.nombre)+'</div>'
-      +'<div class="cart-item-meta">'+escHtml(c.rareza)+' - '+c.idioma+' - '+escHtml(c.set||'\u2014')+' '+escHtml(c.num||'')+'</div>'
+      +'<div class="cart-item-meta">'+escHtml(nombreRareza(c.rareza))+' - '+c.idioma+' - '+escHtml(c.set||'\u2014')+' '+escHtml(c.num||'')+'</div>'
       +'<div style="font-size:.72rem;color:var(--txm);margin-top:2px">'+clp(c.precio)+' x '+c.qty+'</div>'
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0">'
