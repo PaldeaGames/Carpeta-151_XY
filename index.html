@@ -309,6 +309,19 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
      no se estire de mas en pantallas muy grandes */
   #paste-resultado{flex:1;min-width:0;max-width:1150px}
 }
+
+/* ===== Cambios: boton cotizar activo, edicion en carrito, visor ===== */
+.btn-cotizar{background:var(--acc)!important;color:#fff!important;font-weight:700;border:none!important}
+.btn-cotizar:hover{background:#8f6fd6!important}
+.ri-agregada{border-color:rgba(71,255,178,.45)}
+.b-encarrito{background:rgba(71,255,178,.14);color:var(--green)}
+.ag-ctrls{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+#visor-img{position:fixed;inset:0;z-index:9999;background:rgba(5,5,16,.93);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:24px}
+#visor-img.show{display:flex}
+#visor-img img{max-width:min(430px,88vw);max-height:78vh;border-radius:12px;box-shadow:0 10px 44px rgba(0,0,0,.75)}
+.visor-x{position:absolute;top:16px;right:16px;width:42px;height:42px;border-radius:50%;border:1px solid var(--brd2);background:var(--surf2);color:var(--tx);font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.visor-x:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.visor-cap{font-size:.85rem;color:var(--txm);font-weight:600;text-align:center}
 </style>
 </head>
 <body>
@@ -357,7 +370,7 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
         </div>
         <textarea id="paste-textarea" placeholder="4 Bulbasaur MEW 1&#10;2 Charmander Scarlet Violet 151&#10;Squirtle x3&#10;Bulbasaur 1"></textarea>
         <div style="display:flex;gap:8px">
-          <button class="vb" style="flex:1;padding:9px" onclick="cotizarListaPK()">Cotizar lista</button>
+          <button class="vb btn-cotizar" style="flex:1;padding:9px" onclick="cotizarListaPK()">Cotizar lista</button>
           <button class="vb" style="padding:9px 14px" onclick="limpiarListaPK()" title="Vacia el texto, la cotizacion y el carrito">Limpiar todo</button>
         </div>
       </div>
@@ -1286,6 +1299,15 @@ function repartirStockCotiz(){
 
 /* ---------- RENDER ---------- */
 function renderCotizacion(){
+  // Sincroniza las lineas agregadas con el carrito real: si la
+  // quitaron desde el carrito lateral, la linea vuelve a la lista
+  // como disponible para volver a agregar.
+  COTIZ.forEach(function(e){
+    if(!e.agregada) return;
+    var c=CARRITO.find(function(x){return x.cardId===e.found[0]&&x.idioma===e.idioma;});
+    e.enCarrito=c?c.qty:0;
+    if(!c){ e.agregada=false; e.off=false; e.dispManual=null; }
+  });
   repartirStockCotiz();
   var cont=document.getElementById('paste-resultado');
   var h='';
@@ -1344,10 +1366,31 @@ function renderCotizacion(){
     agotadas.forEach(function(o){
       var r=o.e.found;
       var uA=imgUrlFor(r);
+      // Si la misma carta tiene OTRA rareza o version con stock, se
+      // muestran los selectores aqui mismo para poder cambiarse a ella
+      // (antes la linea quedaba atrapada en "sin stock" sin poder volver).
+      var ctrlsAg='';
+      if(o.e.grupo.length>1){
+        ctrlsAg+='<select class="ri-sel" onchange="cambiarRarezaCotiz('+o.idx+',this.value)">'
+          +o.e.grupo.map(function(c){
+            var sinStk=idiomasDisponibles(c).length===0;
+            return '<option value="'+c[0]+'"'+(c[0]===r[0]?' selected':'')+'>'+nombreRareza(c[4])+(sinStk?' (sin stock)':' (disponible)')+'</option>';
+          }).join('')+'</select>';
+      }
+      if(o.e.alternativas.length>1){
+        ctrlsAg+='<select class="ri-sel" onchange="cambiarCartaCotiz('+o.idx+',this.value)">'
+          +o.e.alternativas.map(function(g){
+            var c=elegirVariante(g);
+            var sel=(normPK(c[1])===normPK(r[1])&&normPK(c[2])===normPK(r[2])&&normPK(c[3])===normPK(r[3]))?' selected':'';
+            return '<option value="'+c[0]+'"'+sel+'>'+c[6]+' N\u00B0 '+c[3]+'</option>';
+          }).join('')+'</select>';
+      }
       h+='<div class="ag-row">'
         +(uA?'<img class="ag-img" src="'+uA+'" alt="'+escHtml(r[1])+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
         +'<div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span></div>'
+        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span>'
+        +(ctrlsAg?'<span class="ag-ctrls">'+ctrlsAg+'</span>':'')
+        +'</div>'
         +'<span class="ag-qty">x'+o.e.item.qty+'</span>'
         +'<button class="ri-x" onclick="toggleOffCotiz('+o.idx+')" title="Quitar de la lista">\u2715</button>'
         +'</div>';
@@ -1355,17 +1398,15 @@ function renderCotizacion(){
     h+='<div class="ag-nota">Estas no tienen stock ahora. El resto sigue disponible para agregar.</div></div>';
   }
 
-  // Ya agregadas al carrito
+  // Ya agregadas al carrito: se muestran con la MISMA interfaz de las
+  // disponibles (rareza, carta, idioma, cantidad, quitar), asi al ir
+  // al carrito y volver se puede seguir modificando todo. Los cambios
+  // se aplican directo al carrito.
   var agregadas=COTIZ.map(function(e,i){return {e:e,idx:i};}).filter(function(o){return o.e.agregada;});
   if(agregadas.length){
-    h+='<div class="sec-label" style="color:var(--green)">Ya en tu carrito \u00B7 '+agregadas.length+'</div><div class="ag-box">';
-    agregadas.forEach(function(o){
-      var r=o.e.found;
-      h+='<div class="ag-row"><div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 '+o.e.idioma+'</span></div>'
-        +'<span class="ag-qty" style="color:var(--green)">x'+(o.e.enCarrito||0)+'</span></div>';
-    });
-    h+='</div>';
+    h+='<div class="sec-label" style="color:var(--green)">Ya en tu carrito \u00B7 '+agregadas.length+'</div>';
+    agregadas.forEach(function(o){ h+=buildRiAgregadaPK(o.e,o.idx); });
+    h+='<div class="ag-nota" style="border-top:none;margin-top:0">Puedes seguir modificando cantidad, idioma, rareza o carta aqui mismo; los cambios se aplican directo a tu carrito.</div>';
   }
 
   // Quitadas manualmente (se pueden restaurar)
@@ -1626,6 +1667,126 @@ function fallbackCopiarPK(txt){
   document.body.appendChild(ta); ta.select();
   try{ document.execCommand('copy'); }catch(e){}
   ta.remove();
+}
+
+
+// Fila de una linea YA AGREGADA al carrito, con los mismos controles
+// que una disponible. Los cambios aqui modifican el carrito directo.
+function buildRiAgregadaPK(e,idx){
+  var r=e.found;
+  var idioma=e.idioma;
+  var en=(CARRITO.find(function(c){return c.cardId===r[0]&&c.idioma===idioma;})||{}).qty||0;
+  var stk=getStock(r,idioma), prc=getPrecio(r,idioma);
+  var sub=en*prc;
+  var url=imgUrlFor(r);
+  var tope=(en>0&&en>=stk);
+
+  var selRar='';
+  if(e.grupo.length>1){
+    selRar='<select class="ri-sel" onchange="cambiarRarezaAgregadaPK('+idx+',this.value)">'
+      +e.grupo.map(function(c){
+        var sinStk=idiomasDisponibles(c).length===0;
+        return '<option value="'+c[0]+'"'+(c[0]===r[0]?' selected':'')+'>'+nombreRareza(c[4])+(sinStk?' (sin stock)':'')+'</option>';
+      }).join('')+'</select>';
+  }
+  var selAlt='';
+  if(e.alternativas.length>1){
+    selAlt='<select class="ri-sel" onchange="cambiarCartaAgregadaPK('+idx+',this.value)">'
+      +e.alternativas.map(function(g){
+        var c=elegirVariante(g);
+        var sel=(normPK(c[1])===normPK(r[1])&&normPK(c[2])===normPK(r[2])&&normPK(c[3])===normPK(r[3]))?' selected':'';
+        return '<option value="'+c[0]+'"'+sel+'>'+c[6]+' N\u00B0 '+c[3]+'</option>';
+      }).join('')+'</select>';
+  }
+  var carg=idiomasCargados(r), disp=idiomasDisponibles(r);
+  var langs='';
+  carg.forEach(function(idm){
+    var ok=disp.indexOf(idm)>=0;
+    langs+='<button class="lang-btn'+(idioma===idm&&ok?' active':'')+(ok?'':' agotado-lang')+'"'
+      +(ok?' onclick="cambiarIdiomaAgregadaPK('+idx+',\''+idm+'\')"':' disabled')+'>'+idm+'</button>';
+  });
+  var qtyHtml='<div class="qty-wrap">'
+    +'<button class="qty-btn" onclick="cambiarQtyAgregadaPK('+idx+',-1)">-</button>'
+    +'<span class="qty-num'+(tope?' qty-max':'')+'">'+en+'</span>'
+    +'<button class="qty-btn'+(tope?' qty-btn-max':'')+'" onclick="cambiarQtyAgregadaPK('+idx+',1)" '+(tope?'disabled':'')+'>'+(tope?'\u2205':'+')+'</button>'
+    +'</div>';
+
+  return '<div class="ri ri-agregada">'
+    +(url?'<img class="ri-img" src="'+url+'" alt="'+escHtml(r[1])+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
+    +'<div class="ri-body">'
+      +'<div class="ri-name">'+escHtml(r[1])+'</div>'
+      +'<div class="ri-meta">'+r[6]+' \u00B7 N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 pediste x'+e.item.qty+'</div>'
+      +'<div class="ri-ctrls">'+selAlt+selRar+langs+qtyHtml+'</div>'
+      +'<div class="ri-badges"><span class="ri-badge b-encarrito">En tu carrito</span></div>'
+    +'</div>'
+    +'<div class="ri-right">'
+      +'<button class="ri-x" onclick="quitarAgregadaPK('+idx+')" title="Quitar del carrito y devolver a la lista">\u2715</button>'
+      +'<div><div class="ri-unit">'+(prc>0?clp(prc)+' c/u':'Sin precio')+'</div>'
+      +'<div class="ri-sub">'+clp(sub)+'</div></div>'
+    +'</div></div>';
+}
+
+// Mueve las unidades del carrito de la variante/idioma actual de la
+// linea a otra variante/idioma, topando al stock de destino.
+function moverEnCarritoPK(e,uidNuevo,idiomaNuevo){
+  var i=CARRITO.findIndex(function(c){return c.cardId===e.found[0]&&c.idioma===e.idioma;});
+  var qty=i>=0?CARRITO[i].qty:0;
+  if(i>=0) CARRITO.splice(i,1);
+  var rN=CARDS.find(function(c){return c[0]===uidNuevo;});
+  if(!rN) return 0;
+  var stkN=getStock(rN,idiomaNuevo), prcN=getPrecio(rN,idiomaNuevo);
+  var j=CARRITO.findIndex(function(c){return c.cardId===uidNuevo&&c.idioma===idiomaNuevo;});
+  var libre=Math.max(0,stkN-(j>=0?CARRITO[j].qty:0));
+  var agregar=Math.min(qty,libre);
+  if(prcN>0&&agregar>0){
+    if(j>=0) CARRITO[j].qty+=agregar;
+    else CARRITO.push({cardId:rN[0],nombre:rN[1],rareza:rN[4],idioma:idiomaNuevo,
+      precio:prcN,qty:agregar,img:imgUrlFor(rN),set:rN[2]||'',setNombre:rN[6]||'',num:rN[3]||''});
+  }
+  return agregar;
+}
+// Si tras el cambio no quedo nada en el carrito, la linea vuelve a la lista
+function finCambioAgregadaPK(e,quedo){
+  e.enCarrito=quedo; e.dispManual=null;
+  if(quedo===0){ e.agregada=false; e.off=false; }
+  actualizarCarritoBtn(); renderAll(); renderCotizacion();
+}
+function cambiarQtyAgregadaPK(idx,d){
+  var e=COTIZ[idx]; if(!e) return;
+  cambiarQty(e.found[0],d,e.idioma);   // reparte stock y re-renderiza
+}
+function cambiarRarezaAgregadaPK(idx,uid){
+  var e=COTIZ[idx]; if(!e) return;
+  var nuevo=CARDS.find(function(c){return c[0]===parseInt(uid,10);});
+  if(!nuevo) return;
+  var idm=idiomaActivo(nuevo);
+  var quedo=moverEnCarritoPK(e,nuevo[0],idm);
+  e.found=nuevo; e.idioma=idm;
+  finCambioAgregadaPK(e,quedo);
+}
+function cambiarCartaAgregadaPK(idx,uid){
+  var e=COTIZ[idx]; if(!e) return;
+  var base=CARDS.find(function(c){return c[0]===parseInt(uid,10);});
+  if(!base) return;
+  e.grupo=grupoDeCarta(base);
+  var nuevo=elegirVariante(e.grupo);
+  var idm=idiomaActivo(nuevo);
+  var quedo=moverEnCarritoPK(e,nuevo[0],idm);
+  e.found=nuevo; e.idioma=idm; e.fase=1;
+  finCambioAgregadaPK(e,quedo);
+}
+function cambiarIdiomaAgregadaPK(idx,idm){
+  var e=COTIZ[idx]; if(!e) return;
+  var quedo=moverEnCarritoPK(e,e.found[0],idm);
+  e.idioma=idm;
+  finCambioAgregadaPK(e,quedo);
+}
+function quitarAgregadaPK(idx){
+  var e=COTIZ[idx]; if(!e) return;
+  var i=CARRITO.findIndex(function(c){return c.cardId===e.found[0]&&c.idioma===e.idioma;});
+  if(i>=0) CARRITO.splice(i,1);
+  e.agregada=false; e.off=false; e.enCarrito=0; e.dispManual=null;
+  actualizarCarritoBtn(); renderAll(); renderCotizacion();
 }
 
 function toggleNopePK(btn){
@@ -2097,6 +2258,58 @@ function quitarCart(uid,idioma){
 document.addEventListener('wheel',function(e){ if(e.ctrlKey) e.preventDefault(); },{passive:false});
 document.addEventListener('keydown',function(e){
   if(e.ctrlKey&&(e.key==='+'||e.key==='-'||e.key==='='||e.key==='0')) e.preventDefault();
+});
+
+
+/* ---------- VISOR DE IMAGEN AMPLIADA ----------
+   Clic derecho (PC) o mantener presionado (celular) sobre la imagen
+   de una carta abre el visor en grande. Se cierra con la X o Escape. */
+function abrirVisorImg(src,titulo){
+  var v=document.getElementById('visor-img');
+  if(!v){
+    v=document.createElement('div');
+    v.id='visor-img';
+    v.innerHTML='<button class="visor-x" onclick="cerrarVisorImg()" title="Cerrar">\u2715</button>'
+      +'<img id="visor-img-el" src="" alt="">'
+      +'<div class="visor-cap" id="visor-img-cap"></div>';
+    document.body.appendChild(v);
+  }
+  document.getElementById('visor-img-el').src=src;
+  document.getElementById('visor-img-cap').textContent=titulo||'';
+  v.classList.add('show');
+}
+function cerrarVisorImg(){
+  var v=document.getElementById('visor-img');
+  if(v) v.classList.remove('show');
+}
+document.addEventListener('contextmenu',function(ev){
+  var t=ev.target;
+  if(t&&t.tagName==='IMG'&&t.closest('.alt-thumb,.ri,.ag-row,.ci,.cart-item')){
+    ev.preventDefault();
+    abrirVisorImg(t.src,t.alt||'');
+  }
+});
+// En tactil no hay clic derecho: mantener presionado ~0.5s abre el visor
+var _lpTimer=null,_lpFired=false;
+document.addEventListener('touchstart',function(ev){
+  var t=ev.target;
+  if(t&&t.tagName==='IMG'&&t.closest('.alt-thumb,.ri,.ag-row,.ci,.cart-item')){
+    var src=t.src,alt=t.alt||'';
+    _lpTimer=setTimeout(function(){ _lpFired=true; abrirVisorImg(src,alt); },500);
+  }
+},{passive:true});
+document.addEventListener('touchmove',function(){
+  if(_lpTimer){ clearTimeout(_lpTimer); _lpTimer=null; }
+},{passive:true});
+document.addEventListener('touchend',function(){
+  if(_lpTimer){ clearTimeout(_lpTimer); _lpTimer=null; }
+});
+// Si el visor se abrio con long-press, se anula el clic que suelta el dedo
+document.addEventListener('click',function(ev){
+  if(_lpFired){ ev.preventDefault(); ev.stopPropagation(); _lpFired=false; }
+},true);
+document.addEventListener('keydown',function(ev){
+  if(ev.key==='Escape') cerrarVisorImg();
 });
 
 syncGAS();
