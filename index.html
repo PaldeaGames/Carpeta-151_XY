@@ -236,7 +236,7 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 .lista-hint code{background:var(--surf2);padding:1px 5px;border-radius:4px;font-family:monospace;color:var(--gold);font-size:.72rem}
 .lista-ej{background:var(--surf2);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;margin-top:6px;font-size:.75rem;color:var(--txm);line-height:1.7;font-family:'Inter',sans-serif;font-feature-settings:'tnum' 1}
 .sec-label{font-family:'Inter',sans-serif;font-size:.72rem;font-weight:800;color:var(--txm);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px}
-.ri{background:var(--surf2);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
+.ri{background:var(--surf2);border:1px solid rgba(255,255,255,.28);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
 .ri.ri-off{opacity:.4}
 .ri-img{width:42px;flex-shrink:0;border-radius:5px;background:#050510}
 .ri-body{flex:1;min-width:0}
@@ -1439,7 +1439,7 @@ function renderCotizacion(){
   });
 
   if(conStock.length){
-    h+='<div class="sec-label">Disponibles \u00B7 '+conStock.length+'</div>';
+    h+='<div class="sec-label" style="color:var(--tx)">Por agregar a tu carrito \u00B7 '+conStock.length+'</div>';
     conStock.forEach(function(o){ h+=buildRiPK(o.e,o.idx); });
   }
 
@@ -1526,8 +1526,9 @@ function renderCotizacion(){
   // Sacadas del carrito: no suman en ningun total y se pueden
   // reincorporar con un clic ("me arrepenti")
   var sacadas=COTIZ.map(function(e,i){return {e:e,idx:i};}).filter(function(o){return !o.e.agregada&&o.e.devuelta;});
-  if(sacadas.length){
-    h+='<div class="sec-label" style="color:#ffb347">Sacadas de tu carrito \u00B7 '+sacadas.length+'</div><div class="ag-box">';
+  var quitadas=COTIZ.map(function(e,i){return {e:e,idx:i};}).filter(function(o){return o.e.off&&!o.e.agregada&&!o.e.devuelta;});
+  if(sacadas.length||quitadas.length){
+    h+='<div class="sec-label" style="color:#ffb347">Sacadas de tu carrito \u00B7 '+(sacadas.length+quitadas.length)+'</div><div class="ag-box">';
     sacadas.forEach(function(o){
       var r=o.e.found;
       var uS=imgUrlFor(r);
@@ -1539,21 +1540,18 @@ function renderCotizacion(){
         +'<button class="ri-x" onclick="descartarDevueltaPK('+o.idx+')" title="Quitar de la lista">\u2715</button>'
         +'</div>';
     });
-    h+='<div class="ag-nota">Estas las quitaste del carrito: no suman en el total. Si te arrepentiste, vuelven con las mismas condiciones en que estaban.</div></div>';
-  }
-
-  // Quitadas manualmente (se pueden restaurar)
-  var quitadas=COTIZ.map(function(e,i){return {e:e,idx:i};}).filter(function(o){return o.e.off&&!o.e.agregada&&!o.e.devuelta;});
-  if(quitadas.length){
-    h+='<div class="sec-label">Quitadas \u00B7 '+quitadas.length+'</div><div class="ag-box">';
     quitadas.forEach(function(o){
       var r=o.e.found;
-      h+='<div class="ag-row"><div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
-        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span></div>'
-        +'<span class="ag-qty">x'+o.e.item.qty+'</span>'
-        +'<button class="ri-x" onclick="toggleOffCotiz('+o.idx+')" title="Restaurar">\u21BA</button></div>';
+      var uQ=imgUrlFor(r);
+      h+='<div class="ag-row">'
+        +(uQ?'<img class="ag-img" src="'+uQ+'" alt="'+escHtml(r[1])+'" title="'+TIP_TITLE+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
+        +'<div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
+        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 '+o.e.idioma+'</span></div>'
+        +'<button class="btn-volver-agregar" onclick="reagregarQuitadaPK('+o.idx+')">Volver a agregar (x'+o.e.item.qty+')</button>'
+        +'<button class="ri-x" onclick="eliminarQuitadaPK('+o.idx+')" title="Quitar de la lista">\u2715</button>'
+        +'</div>';
     });
-    h+='</div>';
+    h+='<div class="ag-nota">Estas las quitaste: no suman en el total. Si te arrepentiste, vuelven con las mismas condiciones en que estaban.</div></div>';
   }
 
   if(COTIZ_NOPE.length){
@@ -1966,11 +1964,35 @@ function reagregarDevueltaPK(idx){
   e.agregada=true; e.off=true; e.enCarrito=agregar; e.devuelta=null; e.dispManual=null;
   actualizarCarritoBtn(); renderCard(uid); renderCotizacion();
 }
-// Descartar la sacada: pasa a "Quitadas" (desde ahi se puede restaurar)
+// Descartar la sacada: se elimina la linea de la lista
 function descartarDevueltaPK(idx){
   var e=COTIZ[idx]; if(!e) return;
-  e.devuelta=null;
-  renderCotizacion();
+  COTIZ.splice(idx,1);
+  renderCotizacion(); actualizarFooterLista();
+}
+// "Volver a agregar" una quitada: entra directo al carrito con la
+// cantidad e idioma que tenia la linea. Si ya no hay stock, vuelve
+// a la lista de disponibles.
+function reagregarQuitadaPK(idx){
+  var e=COTIZ[idx]; if(!e||e.agregada||e.devuelta) return;
+  var r=e.found, idm=e.idioma, qty=e.item.qty;
+  var stk=getStock(r,idm), prc=getPrecio(r,idm);
+  var j=CARRITO.findIndex(function(c){return c.cardId===r[0]&&c.idioma===idm;});
+  var libre=Math.max(0,stk-(j>=0?CARRITO[j].qty:0));
+  var agregar=Math.min(qty,libre);
+  if(prc<=0||agregar<=0){
+    e.off=false; e.dispManual=null;
+    renderCotizacion(); return;
+  }
+  if(j>=0) CARRITO[j].qty+=agregar;
+  else CARRITO.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:idm,
+    precio:prc,qty:agregar,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
+  e.agregada=true; e.off=true; e.enCarrito=agregar; e.dispManual=null;
+  actualizarCarritoBtn(); renderCard(r[0]); renderCotizacion();
+}
+function eliminarQuitadaPK(idx){
+  COTIZ.splice(idx,1);
+  renderCotizacion(); actualizarFooterLista();
 }
 
 function toggleNopePK(btn){
