@@ -333,6 +333,14 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 .alt-thumb img{aspect-ratio:5/7}
 .ag-img{aspect-ratio:5/7}
 .cart-item img{aspect-ratio:5/7}
+
+/* ===== Paginacion ===== */
+.pag-bar{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:18px;padding-bottom:8px}
+.pag-info{width:100%;text-align:center;font-size:.74rem;color:var(--txm);margin-bottom:8px;font-feature-settings:'tnum' 1}
+.pag-btn{background:var(--surf2);border:1px solid var(--brd2);color:var(--txm);min-width:34px;height:34px;padding:0 10px;border-radius:8px;cursor:pointer;font-size:.84rem;font-weight:600;font-family:'Inter',sans-serif;transition:all .15s;font-feature-settings:'tnum' 1}
+.pag-btn:hover:not(:disabled){border-color:var(--acc);color:#fff}
+.pag-btn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.pag-btn:disabled{opacity:.3;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -413,12 +421,22 @@ var CARD_IDIOMA={};
 var CARRITO=[];
 var VM='grid';
 var VF='', QF='', SF='', DISPF='', ORDF='', LF='';
+var TF='';
+var PAGE=1, PER_PAGE=50, VER_TODAS=false;
 var LISTADO_IDS=null, LISTADO_RESUMEN=null;
 var GAS_LOADED=false;
 
 /* ===================== HELPERS ===================== */
 function clp(n){return '$ '+Math.round(n).toLocaleString('es-CL');}
 function skey(uid,idioma){return uid+'|'+String(idioma).toUpperCase();}
+/* Tipo de carta: unica fuente = columna "categoria" de la planilla (ej: "Pokemon Planta") */
+var TIPO_DESDE_CAT={'planta':'Planta','fuego':'Fuego','agua':'Agua','electrico':'El\u00e9ctrico','psiquico':'Ps\u00edquico','lucha':'Lucha','oscuridad':'Oscuridad','metal':'Metal','dragon':'Drag\u00f3n','incoloro':'Incoloro','hada':'Hada'};
+function tipoDeCarta(r){
+  var c=String(r[10]||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'');
+  if(c.indexOf('pokemon')<0) return null;
+  for(var k in TIPO_DESDE_CAT){ if(c.indexOf(k)>=0) return TIPO_DESDE_CAT[k]; }
+  return null;
+}
 
 function camelPK(s){
   s=String(s||'').trim().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9\s]/g,'');
@@ -632,6 +650,15 @@ function buildSetsOptions(){
   sets.sort();
   return sets.map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('');
 }
+function buildTiposOptions(){
+  var pres=[];
+  CARDS.forEach(function(c){
+    var t=tipoDeCarta(c);
+    if(t&&pres.indexOf(t)<0) pres.push(t);
+  });
+  pres.sort();
+  return pres.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
+}
 function buildIdiomasOptions(){
   return IDIOMAS.map(function(i){return '<option value="'+i+'">'+nombreIdioma(i)+'</option>';}).join('');
 }
@@ -658,6 +685,10 @@ function build(){
     +'<option value="">Idioma</option>'
     +buildIdiomasOptions()
     +'</select>'
+    +'<select class="il-select" id="tipo-sel" onchange="setTF(this.value)">'
+    +'<option value="">Tipo</option>'
+    +buildTiposOptions()
+    +'</select>'
     +'<select class="il-select" onchange="setDISPF(this.value)">'
     +'<option value="">Disponibilidad</option>'
     +'<option value="con">Con stock</option>'
@@ -669,6 +700,12 @@ function build(){
     +'<option value="precio-asc">Precio \u2191</option>'
     +'<option value="precio-desc">Precio \u2193</option>'
     +'</select>'
+    +'<select class="il-select" id="pp-sel" onchange="setPP(this.value)" title="Cartas por pagina">'
+    +'<option value="25">25 por p\u00e1gina</option>'
+    +'<option value="50">50 por p\u00e1gina</option>'
+    +'<option value="75">75 por p\u00e1gina</option>'
+    +'</select>'
+    +'<button class="vb" id="ver-todas-btn" onclick="toggleVerTodas()">Ver todas</button>'
     +'<button class="vb limpiar-btn" onclick="limpiarFiltros()" title="Limpiar filtros">\u2715 Limpiar</button>'
     +'<div class="view-toggle">'
     +'<span class="view-toggle-label">Vista</span>'
@@ -682,6 +719,9 @@ function build(){
     +'</div>';
   var el=document.getElementById('tab-main');
   el.innerHTML='<div id="v-main"></div>';
+  PAGE=1;
+  var ppsel=document.getElementById('pp-sel'); if(ppsel) ppsel.value=String(PER_PAGE);
+  actualizarVerTodasBtn();
   renderAll();
   actualizarFooterLista();
   ajustarStickyOffset();
@@ -704,6 +744,7 @@ if(window.ResizeObserver){
 /* ===================== FILTROS ===================== */
 function setQ(v){
   QF=v;
+  PAGE=1;
   var btn=document.getElementById('search-clear');
   if(btn) btn.style.display=v?'flex':'none';
   renderAll();
@@ -713,11 +754,25 @@ function clearQ(){
   if(inp) inp.value='';
   setQ('');
 }
-function setVF(v){VF=v;renderAll();}
-function setSF(v){SF=v;renderAll();}
-function setLF(v){LF=v;renderAll();}
-function setDISPF(v){DISPF=v;renderAll();}
-function setORDF(v){ORDF=v;renderAll();}
+function setVF(v){VF=v;PAGE=1;renderAll();}
+function setSF(v){SF=v;PAGE=1;renderAll();}
+function setLF(v){LF=v;PAGE=1;renderAll();}
+function setDISPF(v){DISPF=v;PAGE=1;renderAll();}
+function setORDF(v){ORDF=v;PAGE=1;renderAll();}
+function setTF(v){TF=v;PAGE=1;renderAll();}
+function setPP(v){PER_PAGE=parseInt(v,10)||50;VER_TODAS=false;PAGE=1;actualizarVerTodasBtn();renderAll();}
+function toggleVerTodas(){VER_TODAS=!VER_TODAS;PAGE=1;actualizarVerTodasBtn();renderAll();}
+function actualizarVerTodasBtn(){
+  var b=document.getElementById('ver-todas-btn');
+  if(!b) return;
+  b.classList.toggle('on',VER_TODAS);
+  b.textContent=VER_TODAS?'Ver por p\u00e1ginas':'Ver todas';
+}
+function irAPagina(p){
+  PAGE=p;
+  renderAll();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function setV(mode,btn){
   VM=mode;
   document.querySelectorAll('.vb-icon').forEach(function(b){b.classList.remove('on');});
@@ -725,12 +780,15 @@ function setV(mode,btn){
   renderAll();
 }
 function limpiarFiltros(){
-  VF='';SF='';DISPF='';ORDF='';QF='';LF='';
+  VF='';SF='';DISPF='';ORDF='';QF='';LF='';TF='';
+  PAGE=1;VER_TODAS=false;
   var inp=document.getElementById('search-input');
   if(inp) inp.value='';
   var btn=document.getElementById('search-clear');
   if(btn) btn.style.display='none';
   document.querySelectorAll('#filtros-bar select').forEach(function(s){s.value='';});
+  var ppsel=document.getElementById('pp-sel'); if(ppsel) ppsel.value=String(PER_PAGE);
+  actualizarVerTodasBtn();
   renderAll();
 }
 
@@ -745,10 +803,11 @@ function filtered(){
     var matchV=!VF||r[4]===VF;
     var matchS=!SF||(r[6]||'').trim()===SF;
     var matchL=!LF||idiomasCargados(r).indexOf(LF)>=0;
+    var matchT=!TF||tipoDeCarta(r)===TF;
     var matchDisp=true;
     if(DISPF==='con') matchDisp=idiomasDisponibles(r).length>0;
     else if(DISPF==='sin') matchDisp=idiomasDisponibles(r).length===0;
-    return matchQ&&matchV&&matchS&&matchL&&matchDisp;
+    return matchQ&&matchV&&matchS&&matchL&&matchT&&matchDisp;
   });
 
   // Ordenar NO debe filtrar: las sin precio se mandan al final.
@@ -775,9 +834,41 @@ function renderAll(){
   if(!cont) return;
   var rows=filtered();
   if(!rows.length){cont.innerHTML='<div class="nores">Sin resultados</div>';mostrarBannerListado();return;}
-  if(VM==='table') renderTable(rows,cont);
-  else renderGrid(rows,cont);
+  var total=rows.length;
+  var paginas=VER_TODAS?1:Math.max(1,Math.ceil(total/PER_PAGE));
+  if(PAGE>paginas) PAGE=paginas;
+  if(PAGE<1) PAGE=1;
+  var slice=VER_TODAS?rows:rows.slice((PAGE-1)*PER_PAGE,PAGE*PER_PAGE);
+  if(VM==='table') renderTable(slice,cont);
+  else renderGrid(slice,cont);
+  renderPaginacion(cont,total,paginas);
   mostrarBannerListado();
+}
+
+function renderPaginacion(cont,total,paginas){
+  if(VER_TODAS){
+    cont.innerHTML+='<div class="pag-bar"><div class="pag-info">Mostrando las '+total+' cartas</div></div>';
+    return;
+  }
+  if(paginas<=1){
+    cont.innerHTML+='<div class="pag-bar"><div class="pag-info">'+total+' cartas</div></div>';
+    return;
+  }
+  var ini=(PAGE-1)*PER_PAGE+1, fin=Math.min(total,PAGE*PER_PAGE);
+  var h='<div class="pag-bar">'
+    +'<div class="pag-info">Mostrando '+ini+'\u2013'+fin+' de '+total+' cartas \u00B7 p\u00e1gina '+PAGE+' de '+paginas+'</div>'
+    +'<button class="pag-btn" onclick="irAPagina(1)" '+(PAGE===1?'disabled':'')+' title="Primera p\u00e1gina">\u00AB</button>'
+    +'<button class="pag-btn" onclick="irAPagina('+(PAGE-1)+')" '+(PAGE===1?'disabled':'')+' title="Anterior">\u2039</button>';
+  var start=Math.max(1,Math.min(PAGE-2,paginas-4));
+  var end=Math.min(paginas,start+4);
+  start=Math.max(1,end-4);
+  for(var p=start;p<=end;p++){
+    h+='<button class="pag-btn'+(p===PAGE?' on':'')+'" onclick="irAPagina('+p+')">'+p+'</button>';
+  }
+  h+='<button class="pag-btn" onclick="irAPagina('+(PAGE+1)+')" '+(PAGE===paginas?'disabled':'')+' title="Siguiente">\u203A</button>'
+    +'<button class="pag-btn" onclick="irAPagina('+paginas+')" '+(PAGE===paginas?'disabled':'')+' title="\u00DAltima p\u00e1gina">\u00BB</button>'
+    +'</div>';
+  cont.innerHTML+=h;
 }
 
 function renderGrid(rows,cont){
