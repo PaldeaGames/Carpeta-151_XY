@@ -316,12 +316,17 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 .ri-agregada{border-color:rgba(71,255,178,.45)}
 .b-encarrito{background:rgba(71,255,178,.14);color:var(--green)}
 .ag-ctrls{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
-#visor-img{position:fixed;inset:0;z-index:9999;background:rgba(5,5,16,.93);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:24px}
+#visor-img{position:fixed;inset:0;z-index:9999;background:rgba(5,5,16,.55);display:none;align-items:center;justify-content:center;padding:20px}
 #visor-img.show{display:flex}
-#visor-img img{max-width:min(430px,88vw);max-height:78vh;border-radius:12px;box-shadow:0 10px 44px rgba(0,0,0,.75)}
-.visor-x{position:absolute;top:16px;right:16px;width:42px;height:42px;border-radius:50%;border:1px solid var(--brd2);background:var(--surf2);color:var(--tx);font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.visor-box{position:relative;background:var(--surf);border:1px solid var(--brd2);border-radius:14px;padding:14px;box-shadow:0 16px 54px rgba(0,0,0,.65);max-width:min(360px,85vw)}
+.visor-box img{width:100%;max-height:64vh;object-fit:contain;display:block;border-radius:9px;background:#050510}
+.visor-x{position:absolute;top:-11px;right:-11px;width:32px;height:32px;border-radius:50%;border:1px solid var(--brd2);background:var(--surf2);color:var(--tx);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 3px 10px rgba(0,0,0,.5)}
 .visor-x:hover{background:var(--red);color:#fff;border-color:var(--red)}
-.visor-cap{font-size:.85rem;color:var(--txm);font-weight:600;text-align:center}
+.visor-cap{margin-top:10px;font-size:.8rem;color:var(--txm);font-weight:600;text-align:center}
+.btn-volver-agregar{background:var(--green);color:#0d0d0f;border:none;border-radius:7px;padding:6px 12px;font-size:.72rem;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0}
+.btn-volver-agregar:hover{filter:brightness(1.12)}
+.alt-tip{font-weight:400;opacity:.65;font-size:.62rem}
+.lista-tip{font-size:.68rem;color:var(--accent);margin-top:6px;line-height:1.4}
 
 /* ===== Fix salto de pagina: las imagenes reservan su espacio ===== */
 .ri-img{aspect-ratio:5/7;height:auto}
@@ -373,6 +378,7 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
       <div class="paste-izq">
         <div class="lista-hint">Pega tu lista, <b>una carta por línea</b>. Reconoce varios formatos:
           <div class="lista-ej">4 Bulbasaur MEW 1<br>2 Charmander Scarlet Violet 151<br>Pikachu MEW 25<br>Squirtle x3<br>Bulbasaur 1</div>
+          <div class="lista-tip" id="lista-tip-zoom"></div>
         </div>
         <textarea id="paste-textarea" placeholder="4 Bulbasaur MEW 1&#10;2 Charmander Scarlet Violet 151&#10;Squirtle x3&#10;Bulbasaur 1"></textarea>
         <div style="display:flex;gap:8px">
@@ -788,7 +794,7 @@ function buildCardHtml(r){
   var idioma=idiomaActivo(r);
   var url=imgUrlFor(r);
   var imgHtml=url
-    ?'<img src="'+url+'" alt="'+escHtml(r[1])+'" data-idx="0" style="width:100%;height:auto;display:block" onerror="imgFallback(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">'
+    ?'<img src="'+url+'" alt="'+escHtml(r[1])+'" title="'+escHtml(r[1])+' \u00B7 '+TIP_TITLE+'" data-idx="0" style="width:100%;height:auto;display:block" onerror="imgFallback(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">'
     :'<div class="ph">Sin imagen</div>';
 
   var disp=idiomasDisponibles(r);
@@ -976,9 +982,11 @@ function actualizarCarritoBtn(){
 /* ===================== PEGAR LISTADO ===================== */
 function abrirPegarListado(){
   document.getElementById('paste-panel').classList.add('show');
-  if(!COTIZ.length&&!COTIZ_NOPE.length){
-    document.getElementById('paste-resultado').innerHTML='';
-  }
+  // Siempre se re-sincroniza con el carrito actual: si el cliente fue
+  // al carrito, quito o cambio cosas, y vuelve, el listado refleja la
+  // realidad (nada de estados raros al avanzar y retroceder).
+  if(COTIZ.length||COTIZ_NOPE.length) renderCotizacion();
+  else document.getElementById('paste-resultado').innerHTML='';
   actualizarFooterLista();
 }
 function cerrarPegarListado(){
@@ -1304,16 +1312,23 @@ function repartirStockCotiz(){
 }
 
 /* ---------- RENDER ---------- */
-function renderCotizacion(){
-  // Sincroniza las lineas agregadas con el carrito real: si la
-  // quitaron desde el carrito lateral, la linea vuelve a la lista
-  // como disponible para volver a agregar.
+// Las lineas agregadas se sincronizan con el carrito real. Si una
+// carta salio del carrito (desde el listado O desde el carrito
+// lateral, al ir y volver), NO vuelve a disponibles sumando en el
+// total: pasa a "Sacadas de tu carrito", guardando las condiciones
+// con que estaba (cantidad, idioma, variante) para poder reincorporarla.
+function sincronizarAgregadas(){
   COTIZ.forEach(function(e){
     if(!e.agregada) return;
     var c=CARRITO.find(function(x){return x.cardId===e.found[0]&&x.idioma===e.idioma;});
-    e.enCarrito=c?c.qty:0;
-    if(!c){ e.agregada=false; e.off=false; e.dispManual=null; }
+    if(c){ e.enCarrito=c.qty; return; }
+    e.devuelta={qty:e.enCarrito||e.item.qty, idioma:e.idioma, uid:e.found[0]};
+    e.agregada=false; e.off=true; e.enCarrito=0; e.dispManual=null;
   });
+}
+
+function renderCotizacion(){
+  sincronizarAgregadas();
   repartirStockCotiz();
   var cont=document.getElementById('paste-resultado');
   var h='';
@@ -1392,7 +1407,7 @@ function renderCotizacion(){
           }).join('')+'</select>';
       }
       h+='<div class="ag-row">'
-        +(uA?'<img class="ag-img" src="'+uA+'" alt="'+escHtml(r[1])+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
+        +(uA?'<img class="ag-img" src="'+uA+'" alt="'+escHtml(r[1])+'" title="'+TIP_TITLE+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
         +'<div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
         +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+'</span>'
         +(ctrlsAg?'<span class="ag-ctrls">'+ctrlsAg+'</span>':'')
@@ -1415,8 +1430,27 @@ function renderCotizacion(){
     h+='<div class="ag-nota" style="border-top:none;margin-top:0">Puedes seguir modificando cantidad, idioma, rareza o carta aqui mismo; los cambios se aplican directo a tu carrito.</div>';
   }
 
+  // Sacadas del carrito: no suman en ningun total y se pueden
+  // reincorporar con un clic ("me arrepenti")
+  var sacadas=COTIZ.map(function(e,i){return {e:e,idx:i};}).filter(function(o){return !o.e.agregada&&o.e.devuelta;});
+  if(sacadas.length){
+    h+='<div class="sec-label" style="color:#ffb347">Sacadas de tu carrito \u00B7 '+sacadas.length+'</div><div class="ag-box">';
+    sacadas.forEach(function(o){
+      var r=o.e.found;
+      var uS=imgUrlFor(r);
+      h+='<div class="ag-row">'
+        +(uS?'<img class="ag-img" src="'+uS+'" alt="'+escHtml(r[1])+'" title="'+TIP_TITLE+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
+        +'<div class="ag-info"><span class="ag-nom">'+escHtml(r[1])+'</span>'
+        +'<span class="ag-meta">'+r[6]+' N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 '+o.e.devuelta.idioma+'</span></div>'
+        +'<button class="btn-volver-agregar" onclick="reagregarDevueltaPK('+o.idx+')">Volver a agregar (x'+o.e.devuelta.qty+')</button>'
+        +'<button class="ri-x" onclick="descartarDevueltaPK('+o.idx+')" title="Quitar de la lista">\u2715</button>'
+        +'</div>';
+    });
+    h+='<div class="ag-nota">Estas las quitaste del carrito: no suman en el total. Si te arrepentiste, vuelven con las mismas condiciones en que estaban.</div></div>';
+  }
+
   // Quitadas manualmente (se pueden restaurar)
-  var quitadas=COTIZ.map(function(e,i){return {e:e,idx:i};}).filter(function(o){return o.e.off&&!o.e.agregada;});
+  var quitadas=COTIZ.map(function(e,i){return {e:e,idx:i};}).filter(function(o){return o.e.off&&!o.e.agregada&&!o.e.devuelta;});
   if(quitadas.length){
     h+='<div class="sec-label">Quitadas \u00B7 '+quitadas.length+'</div><div class="ag-box">';
     quitadas.forEach(function(o){
@@ -1463,7 +1497,7 @@ function sincronizarCotizacion(){
   if(_SYNC_COTIZ) return;          // evita recursion con renderCotizacion
   _SYNC_COTIZ=true;
   try{
-    if(COTIZ.length) repartirStockCotiz();
+    if(COTIZ.length){ sincronizarAgregadas(); repartirStockCotiz(); }
     var pl=document.getElementById('paste-panel');
     if(pl&&pl.classList.contains('show')&&(COTIZ.length||COTIZ_NOPE.length)) renderCotizacion();
     else actualizarFooterLista();
@@ -1548,13 +1582,13 @@ function buildRiPK(e,idx){
   // elegida queda en color y las demas en gris; un clic la selecciona.
   var thumbs='';
   if(e.alternativas.length>1){
-    thumbs='<div class="alt-label">Elige la carta que quieres comprar:</div><div class="alt-thumbs">';
+    thumbs='<div class="alt-label">Elige la carta que quieres comprar: <span class="alt-tip">('+TIP_ZOOM+')</span></div><div class="alt-thumbs">';
     e.alternativas.forEach(function(g){
       var rep=elegirVariante(g);
       var esSel=(normPK(rep[1])===normPK(r[1])&&normPK(rep[2])===normPK(r[2])&&normPK(rep[3])===normPK(r[3]));
       var cardImg=esSel?r:rep;
       var u=imgUrlFor(cardImg);
-      thumbs+='<div class="alt-thumb'+(esSel?' sel':'')+'" onclick="cambiarCartaCotiz('+idx+','+rep[0]+')" title="'+escHtml(rep[6])+' '+escHtml(rep[3])+'">'
+      thumbs+='<div class="alt-thumb'+(esSel?' sel':'')+'" onclick="cambiarCartaCotiz('+idx+','+rep[0]+')" title="'+escHtml(rep[6])+' '+escHtml(rep[3])+' \u00B7 '+TIP_TITLE+'">'
         +(u?'<img src="'+u+'" alt="'+escHtml(rep[1])+'" data-idx="0" onerror="imgFallbackCart(this,'+cardImg[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'<div class="alt-ph">Sin imagen</div>')
         +'<span>'+escHtml(rep[6])+' '+escHtml(rep[3])+'</span>'
         +'</div>';
@@ -1581,7 +1615,7 @@ function buildRiPK(e,idx){
   }
 
   return '<div class="ri'+(e.off?' ri-off':'')+'">'
-    +(url?'<img class="ri-img" src="'+url+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
+    +(url?'<img class="ri-img" src="'+url+'" alt="'+escHtml(r[1])+'" title="'+TIP_TITLE+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
     +'<div class="ri-body">'
       +'<div class="ri-name">'+escHtml(r[1])+'</div>'
       +'<div class="ri-meta">'+r[6]+' \u00B7 N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 pediste x'+e.item.qty+'</div>'
@@ -1612,7 +1646,9 @@ function buildResumenPK(){
   var pedido=COTIZ.reduce(function(s,e){return s+e.item.qty;},0)
             +COTIZ_NOPE.reduce(function(s,d){return s+d.qty;},0);
   var yaTenias=COTIZ.reduce(function(s,e){return s+((!e.off&&e.motivo==='carrito')?e.item.qty:0);},0);
-  var falt=Math.max(0, pedido-enc-yaDeEstaLista-yaTenias);
+  var sacadasQty=COTIZ.reduce(function(s,e){return s+((!e.agregada&&e.devuelta)?e.item.qty:0);},0);
+  var quitadasQty=COTIZ.reduce(function(s,e){return s+((e.off&&!e.agregada&&!e.devuelta)?e.item.qty:0);},0);
+  var falt=Math.max(0, pedido-enc-yaDeEstaLista-yaTenias-sacadasQty-quitadasQty);
 
   var h='<div class="sum-card"><div class="sum-title">Resumen de tu lista</div>';
   h+='<div class="sum-line"><span>Pediste</span><strong>'+pedido+' carta(s)</strong></div>';
@@ -1622,6 +1658,10 @@ function buildResumenPK(){
     h+='<div class="sum-line"><span>Ya las tenias en el carrito</span><strong style="color:var(--green)">'+yaTenias+'</strong></div>';
   if(enc>0)
     h+='<div class="sum-line"><span>Listas para agregar</span><strong>'+enc+'</strong></div>';
+  if(sacadasQty>0)
+    h+='<div class="sum-line"><span>Sacadas de tu carrito</span><strong style="color:#ffb347">'+sacadasQty+'</strong></div>';
+  if(quitadasQty>0)
+    h+='<div class="sum-line"><span>Quitadas de la lista</span><strong>'+quitadasQty+'</strong></div>';
   if(falt>0)
     h+='<div class="sum-line"><span>No disponibles</span><strong>'+falt+'</strong></div>';
 
@@ -1724,7 +1764,7 @@ function buildRiAgregadaPK(e,idx){
     +'</div>';
 
   return '<div class="ri ri-agregada">'
-    +(url?'<img class="ri-img" src="'+url+'" alt="'+escHtml(r[1])+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
+    +(url?'<img class="ri-img" src="'+url+'" alt="'+escHtml(r[1])+'" title="'+TIP_TITLE+'" data-idx="0" onerror="imgFallbackCart(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
     +'<div class="ri-body">'
       +'<div class="ri-name">'+escHtml(r[1])+'</div>'
       +'<div class="ri-meta">'+r[6]+' \u00B7 N\u00B0 '+r[3]+' \u00B7 '+nombreRareza(r[4])+' \u00B7 pediste x'+e.item.qty+'</div>'
@@ -1732,7 +1772,7 @@ function buildRiAgregadaPK(e,idx){
       +'<div class="ri-badges"><span class="ri-badge b-encarrito">En tu carrito</span></div>'
     +'</div>'
     +'<div class="ri-right">'
-      +'<button class="ri-x" onclick="quitarAgregadaPK('+idx+')" title="Quitar del carrito y devolver a la lista">\u2715</button>'
+      +'<button class="ri-x" onclick="quitarAgregadaPK('+idx+')" title="Quitar del carrito (podr\u00e1s volver a agregarla)">\u2715</button>'
       +'<div><div class="ri-unit">'+(prc>0?clp(prc)+' c/u':'Sin precio')+'</div>'
       +'<div class="ri-sub">'+clp(sub)+'</div></div>'
     +'</div></div>';
@@ -1803,9 +1843,41 @@ function cambiarIdiomaAgregadaPK(idx,idm){
 function quitarAgregadaPK(idx){
   var e=COTIZ[idx]; if(!e) return;
   var i=CARRITO.findIndex(function(c){return c.cardId===e.found[0]&&c.idioma===e.idioma;});
+  var qty=i>=0?CARRITO[i].qty:(e.enCarrito||e.item.qty);
   if(i>=0) CARRITO.splice(i,1);
-  e.agregada=false; e.off=false; e.enCarrito=0; e.dispManual=null;
+  // Queda como "sacada": no suma en ningun total, pero se puede
+  // reincorporar con las mismas condiciones (cantidad, idioma, variante)
+  e.devuelta={qty:qty, idioma:e.idioma, uid:e.found[0]};
+  e.agregada=false; e.off=true; e.enCarrito=0; e.dispManual=null;
   actualizarCarritoBtn(); renderCard(e.found[0]); renderCotizacion();
+}
+// "Me arrepenti": vuelve al carrito con las mismas condiciones con
+// que se saco. Si el stock ya no alcanza, queda disponible en la lista.
+function reagregarDevueltaPK(idx){
+  var e=COTIZ[idx]; if(!e||!e.devuelta) return;
+  var uid=e.devuelta.uid, idm=e.devuelta.idioma, qty=e.devuelta.qty;
+  var r=CARDS.find(function(c){return c[0]===uid;});
+  if(!r){ e.devuelta=null; e.off=false; renderCotizacion(); return; }
+  var stk=getStock(r,idm), prc=getPrecio(r,idm);
+  var j=CARRITO.findIndex(function(c){return c.cardId===uid&&c.idioma===idm;});
+  var libre=Math.max(0,stk-(j>=0?CARRITO[j].qty:0));
+  var agregar=Math.min(qty,libre);
+  if(prc<=0||agregar<=0){
+    // Ya no hay stock para devolverla: queda disponible en la lista
+    e.devuelta=null; e.off=false; e.dispManual=null;
+    renderCotizacion(); return;
+  }
+  if(j>=0) CARRITO[j].qty+=agregar;
+  else CARRITO.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:idm,
+    precio:prc,qty:agregar,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
+  e.agregada=true; e.off=true; e.enCarrito=agregar; e.devuelta=null; e.dispManual=null;
+  actualizarCarritoBtn(); renderCard(uid); renderCotizacion();
+}
+// Descartar la sacada: pasa a "Quitadas" (desde ahi se puede restaurar)
+function descartarDevueltaPK(idx){
+  var e=COTIZ[idx]; if(!e) return;
+  e.devuelta=null;
+  renderCotizacion();
 }
 
 function toggleNopePK(btn){
@@ -1943,7 +2015,7 @@ function renderVistaCarrito(){
     var stkC=cr?getStock(cr,c.idioma):c.qty;
     var topeC=(c.qty>=stkC);
     h+='<div class="cart-item">';
-    if(c.img) h+='<img src="'+c.img+'" alt="'+escHtml(c.nombre)+'" data-idx="0" onerror="imgFallbackCart(this,'+c.cardId+',parseInt(this.getAttribute(\'data-idx\'),10))">';
+    if(c.img) h+='<img src="'+c.img+'" alt="'+escHtml(c.nombre)+'" title="'+TIP_TITLE+'" data-idx="0" onerror="imgFallbackCart(this,'+c.cardId+',parseInt(this.getAttribute(\'data-idx\'),10))">';
     h+='<div class="cart-item-info">'
       +'<div class="cart-item-name">'+escHtml(c.nombre)+'</div>'
       +'<div class="cart-item-meta">'+escHtml(nombreRareza(c.rareza))+' - '+c.idioma+' - '+escHtml(c.setNombre||c.set||'\u2014')+' '+escHtml(c.num||'')+'</div>'
@@ -2286,14 +2358,19 @@ document.addEventListener('keydown',function(e){
 /* ---------- VISOR DE IMAGEN AMPLIADA ----------
    Clic derecho (PC) o mantener presionado (celular) sobre la imagen
    de una carta abre el visor en grande. Se cierra con la X o Escape. */
+var ES_TACTIL=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+var TIP_ZOOM=ES_TACTIL?'mant\u00e9n presionada la imagen de una carta para ampliarla':'clic derecho sobre la imagen de una carta para ampliarla';
+var TIP_TITLE=ES_TACTIL?'Mant\u00e9n presionada para ampliar':'Clic derecho para ampliar';
 function abrirVisorImg(src,titulo){
   var v=document.getElementById('visor-img');
   if(!v){
     v=document.createElement('div');
     v.id='visor-img';
-    v.innerHTML='<button class="visor-x" onclick="cerrarVisorImg()" title="Cerrar">\u2715</button>'
+    v.innerHTML='<div class="visor-box">'
+      +'<button class="visor-x" onclick="cerrarVisorImg()" title="Cerrar">\u2715</button>'
       +'<img id="visor-img-el" src="" alt="">'
-      +'<div class="visor-cap" id="visor-img-cap"></div>';
+      +'<div class="visor-cap" id="visor-img-cap"></div>'
+      +'</div>';
     document.body.appendChild(v);
   }
   document.getElementById('visor-img-el').src=src;
@@ -2333,6 +2410,10 @@ document.addEventListener('click',function(ev){
 document.addEventListener('keydown',function(ev){
   if(ev.key==='Escape') cerrarVisorImg();
 });
+
+// Aviso de que las imagenes se pueden ampliar (texto segun dispositivo)
+var tipZoomEl=document.getElementById('lista-tip-zoom');
+if(tipZoomEl) tipZoomEl.textContent='Consejo: '+TIP_ZOOM+'.';
 
 syncGAS();
 </script>
