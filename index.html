@@ -419,6 +419,7 @@ var IMGS={};
 var IMG_CAND={};
 var CARD_IDIOMA={};
 var CARRITO=[];
+var SACADAS=[];
 var VM='grid';
 var VF='', QF='', SF='', DISPF='', ORDF='', LF='';
 var TF='';
@@ -1010,10 +1011,11 @@ function cambiarQty(uid,delta,idioma){
   var idx=CARRITO.findIndex(function(c){return c.cardId===uid&&c.idioma===idioma;});
   if(idx>=0){
     var nueva=CARRITO[idx].qty+delta;
-    if(nueva<=0) CARRITO.splice(idx,1);
+    if(nueva<=0){ registrarSacada(CARRITO[idx]); CARRITO.splice(idx,1); }
     else CARRITO[idx].qty=Math.min(nueva,stk);
   } else if(delta>0&&precio>0&&stk>0){
     CARRITO.push({cardId:uid,nombre:r[1],rareza:r[4],idioma:idioma,precio:precio,qty:1,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
+    olvidarSacada(uid,idioma);
   }
   actualizarCarritoBtn();
   parchearQty(uid,idioma);
@@ -1334,7 +1336,7 @@ function limpiarListaPK(){
   document.getElementById('paste-resultado').innerHTML='';
   COTIZ=[]; COTIZ_NOPE=[];
   LISTADO_IDS=null; LISTADO_RESUMEN=null;
-  CARRITO=[];
+  CARRITO=[]; SACADAS=[];
   CHECKOUT_VIEW='cart';
   VINO_DEL_LISTADO=false;
   actualizarCarritoBtn();
@@ -2090,7 +2092,7 @@ function renderVistaCarrito(){
   var footer=document.getElementById('cart-footer-zone');
   footer.style.display='block';
   if(!CARRITO.length){
-    body.innerHTML='<div class="cart-empty">Tu carrito esta vacio.</div>';
+    body.innerHTML='<div class="cart-empty">Tu carrito esta vacio.</div>'+htmlSacadas();
     document.getElementById('cart-total').textContent='$0';
     footer.querySelector('#cart-btns-row').style.display='none';
     footer.querySelector('.cart-note').style.display='none';
@@ -2099,6 +2101,7 @@ function renderVistaCarrito(){
   footer.querySelector('#cart-btns-row').style.display='flex';
   footer.querySelector('.cart-note').style.display='block';
   var total=0, h='';
+  h+='<div class="sec-label" style="color:var(--green);margin-top:0">Ya en tu carrito \u00B7 '+CARRITO.length+'</div>';
   CARRITO.forEach(function(c){
     var sub=c.precio*c.qty;
     total+=sub;
@@ -2122,6 +2125,7 @@ function renderVistaCarrito(){
       +'<button class="cart-remove" onclick="quitarCart('+c.cardId+',\''+c.idioma+'\')">x</button>'
       +'</div>';
   });
+  h+=htmlSacadas();
   // Conservar el scroll del carrito al redibujar (misma causa del salto)
   var scrollCarrito=body.scrollTop;
   body.innerHTML=h;
@@ -2407,7 +2411,7 @@ async function enviarPedidoPK(){
 
   ULTIMO_PEDIDO=resp||null;
   CHECKOUT_VIEW='success';
-  CARRITO=[];
+  CARRITO=[]; SACADAS=[];
   VINO_DEL_LISTADO=false;
   COTIZ=[]; COTIZ_NOPE=[];
   actualizarCarritoBtn();
@@ -2428,6 +2432,55 @@ function renderVistaExito(){
     +'<button class="checkout-back" style="margin-top:18px" onclick="cerrarCarrito()">Cerrar</button></div>';
 }
 
+/* ---------- SACADAS DEL CARRITO ----------
+   Toda carta que sale del carrito queda aqui, con las condiciones en
+   que estaba, para reincorporarla con un clic ("me arrepenti"). */
+function registrarSacada(item){
+  var s=SACADAS.find(function(x){return x.cardId===item.cardId&&x.idioma===item.idioma;});
+  if(s){ s.qty+=item.qty; return; }
+  SACADAS.push({cardId:item.cardId,nombre:item.nombre,rareza:item.rareza,idioma:item.idioma,precio:item.precio,qty:item.qty,img:item.img,set:item.set,setNombre:item.setNombre,num:item.num});
+}
+function olvidarSacada(uid,idioma){
+  var i=SACADAS.findIndex(function(x){return x.cardId===uid&&x.idioma===idioma;});
+  if(i>=0) SACADAS.splice(i,1);
+}
+function reagregarSacada(i){
+  var s=SACADAS[i]; if(!s) return;
+  var r=CARDS.find(function(c){return c[0]===s.cardId;});
+  if(!r){ SACADAS.splice(i,1); renderCarritoPanel(); return; }
+  var stk=getStock(r,s.idioma), prc=getPrecio(r,s.idioma);
+  var en=CARRITO.find(function(c){return c.cardId===s.cardId&&c.idioma===s.idioma;});
+  var ya=en?en.qty:0;
+  var cabe=Math.max(0,stk-ya);
+  if(prc<=0||cabe<=0){ alert('No queda stock disponible de '+s.nombre+' ('+s.idioma+') por ahora.'); return; }
+  var cant=Math.min(s.qty,cabe);
+  if(en) en.qty+=cant;
+  else CARRITO.push({cardId:s.cardId,nombre:s.nombre,rareza:s.rareza,idioma:s.idioma,precio:prc,qty:cant,img:imgUrlFor(r),set:s.set,setNombre:s.setNombre,num:s.num});
+  s.qty-=cant;
+  if(s.qty<=0) SACADAS.splice(i,1);
+  actualizarCarritoBtn();
+  renderCard(s.cardId);
+}
+function descartarSacada(i){
+  SACADAS.splice(i,1);
+  if(CHECKOUT_VIEW==='cart') renderVistaCarrito();
+}
+function htmlSacadas(){
+  if(!SACADAS.length) return '';
+  var h='<div class="sec-label" style="color:#ffb347">Sacadas de tu carrito \u00B7 '+SACADAS.length+'</div><div class="ag-box">';
+  SACADAS.forEach(function(s,i){
+    h+='<div class="ag-row">'
+      +(s.img?'<img class="ag-img" src="'+s.img+'" alt="'+escHtml(s.nombre)+'">':'')
+      +'<div class="ag-info"><span class="ag-nom">'+escHtml(s.nombre)+'</span>'
+      +'<span class="ag-meta">'+escHtml(s.setNombre||s.set||'\u2014')+(s.num?' N\u00B0 '+s.num:'')+' \u00B7 '+escHtml(nombreRareza(s.rareza))+' \u00B7 '+s.idioma+'</span></div>'
+      +'<button class="btn-volver-agregar" onclick="reagregarSacada('+i+')">Volver a agregar (x'+s.qty+')</button>'
+      +'<button class="ri-x" onclick="descartarSacada('+i+')" title="Quitar de la lista">\u2715</button>'
+      +'</div>';
+  });
+  h+='<div class="ag-nota">Estas las quitaste del carrito: no suman en el total. Si te arrepentiste, vuelven con las mismas condiciones en que estaban.</div></div>';
+  return h;
+}
+
 function cambiarQtyCart(uid,idioma,delta){
   // actualizarCarritoBtn ya repinta el panel cuando esta en vista carrito
   cambiarQty(uid,delta,idioma);
@@ -2435,6 +2488,7 @@ function cambiarQtyCart(uid,idioma,delta){
 function quitarCart(uid,idioma){
   var idx=CARRITO.findIndex(function(c){return c.cardId===uid&&c.idioma===idioma;});
   if(idx<0) return;
+  registrarSacada(CARRITO[idx]);
   CARRITO.splice(idx,1);
   renderCard(uid);
   actualizarCarritoBtn();
