@@ -341,6 +341,33 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 .pag-btn:hover:not(:disabled){border-color:var(--acc);color:#fff}
 .pag-btn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 .pag-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ===== Celular vista lista: esconder Set, Rareza y Stock para que
+   Precio y Carrito (+/-) queden visibles sin deslizar ===== */
+@media (max-width:700px){
+  .tbl th:nth-child(3),.tbl td:nth-child(3),
+  .tbl th:nth-child(4),.tbl td:nth-child(4),
+  .tbl th:nth-child(7),.tbl td:nth-child(7){display:none}
+  .tbl .lang-btn{font-size:.64rem;padding:2px 6px}
+}
+.tbl-hint{display:none;text-align:center;font-size:.72rem;color:var(--accent);padding:6px 0 0;animation:hintNudge 1.6s ease-in-out infinite}
+@media (max-width:700px){
+  .tbl-hint.show{display:block}
+}
+@keyframes hintNudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
+
+/* ===== Icono Instagram en el header ===== */
+.ig-link{width:38px;height:38px;border-radius:50%;border:1px solid var(--brd2);color:var(--txm);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;text-decoration:none}
+.ig-link:hover{color:#fff;border-color:var(--acc);background:var(--acc)}
+.ig-link svg{width:19px;height:19px}
+@media (max-width:480px){
+  .ig-link{width:32px;height:32px}
+  .ig-link svg{width:16px;height:16px}
+}
+
+/* ===== Pie de pagina: derechos reservados ===== */
+.site-footer{border-top:1px solid var(--brd);padding:18px 20px 26px;text-align:center;font-size:.72rem;color:var(--txm);line-height:1.7}
+.site-footer strong{color:var(--tx);font-weight:700}
 </style>
 </head>
 <body>
@@ -353,6 +380,7 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
       <p>Elige tu idioma en cada carta y agrégala al carrito</p>
     </div>
   </div>
+  <a class="ig-link" href="https://www.instagram.com/paldea.games" target="_blank" rel="noopener" title="Siguenos en Instagram: @paldea.games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" stroke="none"/></svg></a>
   <button class="head-cart-btn" onclick="VINO_DEL_LISTADO=false;abrirCarrito()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>Carrito <span class="cart-count zero" id="cart-count">0</span></button>
 </header>
 <button class="paste-banner opt-c" onclick="abrirPegarListado()">
@@ -363,6 +391,10 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 <div class="bar-sticky" id="filtros-bar"></div>
 </div>
 <div class="tab on" id="tab-main"></div>
+<footer class="site-footer">
+  <strong>Paldea Games</strong> \u00B7 Todos los derechos reservados \u00A9 2026<br>
+  Pok\u00e9mon y los nombres de sus personajes son marcas de Nintendo / Creatures Inc. / GAME FREAK inc. Esta tienda no est\u00e1 afiliada ni es auspiciada por ellas.
+</footer>
 <div id="carrito-panel">
   <div class="cart-overlay" onclick="cerrarCarrito()"></div>
   <div class="cart-drawer">
@@ -634,6 +666,7 @@ async function syncGAS(){
     bar.textContent=CARDS.length+' variantes cargadas';
     setTimeout(function(){bar.className='sync-bar';},2500);
     build();
+    if(!window._ESTADO_RESTAURADO){ window._ESTADO_RESTAURADO=true; restaurarEstado(); }
   }catch(e){
     bar.textContent='No se pudo cargar el inventario. Recarga la pagina.';
     GAS_LOADED=false;
@@ -960,7 +993,10 @@ function renderTable(rows,cont){
     h+='<tr id="tr-'+r[0]+'" class="'+rowClass+'">'+buildRowHtml(r)+'</tr>';
   });
   h+='</tbody></table></div>';
+  h+='<div class="tbl-hint" id="tbl-hint">Desliza hacia la izquierda para ver m\u00e1s \u2192</div>';
   cont.innerHTML=h;
+  var sc=cont.querySelector('.tbl-scroll'), hint=document.getElementById('tbl-hint');
+  if(sc&&hint) hint.classList.toggle('show', sc.scrollWidth>sc.clientWidth+4);
 }
 
 function buildRowHtml(r){
@@ -1070,11 +1106,13 @@ function actualizarCarritoBtn(){
   var panel=document.getElementById('carrito-panel');
   if(panel&&panel.classList.contains('show')&&CHECKOUT_VIEW==='cart') renderCarritoPanel();
   sincronizarCotizacion();
+  persistirEstado();
 }
 
 /* ===================== PEGAR LISTADO ===================== */
 function abrirPegarListado(){
   document.getElementById('paste-panel').classList.add('show');
+  persistirEstado();
   // Siempre se re-sincroniza con el carrito actual: si el cliente fue
   // al carrito, quito o cambio cosas, y vuelve, el listado refleja la
   // realidad (nada de estados raros al avanzar y retroceder).
@@ -1084,6 +1122,7 @@ function abrirPegarListado(){
 }
 function cerrarPegarListado(){
   document.getElementById('paste-panel').classList.remove('show');
+  persistirEstado();
 }
 
 /* ============================================================
@@ -1318,6 +1357,7 @@ function cotizarListaPK(){
     : null;
   renderCotizacion();
   renderAll();
+  persistirEstado();
 }
 
 // "Limpiar todo" = empezar de cero. Vacia el texto, la cotizacion Y el
@@ -1337,6 +1377,7 @@ function limpiarListaPK(){
   COTIZ=[]; COTIZ_NOPE=[];
   LISTADO_IDS=null; LISTADO_RESUMEN=null;
   CARRITO=[]; SACADAS=[];
+  FORM_DATA={}; entregaMode=''; direccionMode='domicilio';
   CHECKOUT_VIEW='cart';
   VINO_DEL_LISTADO=false;
   actualizarCarritoBtn();
@@ -1412,11 +1453,19 @@ function repartirStockCotiz(){
 // con que estaba (cantidad, idioma, variante) para poder reincorporarla.
 function sincronizarAgregadas(){
   COTIZ.forEach(function(e){
-    if(!e.agregada) return;
     var c=CARRITO.find(function(x){return x.cardId===e.found[0]&&x.idioma===e.idioma;});
-    if(c){ e.enCarrito=c.qty; return; }
-    e.devuelta={qty:e.enCarrito||e.item.qty, idioma:e.idioma, uid:e.found[0]};
-    e.agregada=false; e.off=true; e.enCarrito=0; e.dispManual=null;
+    if(e.agregada){
+      if(c){ e.enCarrito=c.qty; return; }
+      e.devuelta={qty:e.enCarrito||e.item.qty, idioma:e.idioma, uid:e.found[0]};
+      e.agregada=false; e.off=true; e.enCarrito=0; e.dispManual=null;
+      return;
+    }
+    // Si estaba como "sacada" pero la carta volvio al carrito por
+    // cualquier via (boton del carrito lateral, grilla), se reconcilia
+    // como agregada: listado y carrito siempre muestran lo mismo.
+    if(e.devuelta&&c){
+      e.agregada=true; e.off=true; e.enCarrito=c.qty; e.devuelta=null; e.dispManual=null;
+    }
   });
 }
 
@@ -1621,6 +1670,56 @@ function irAlCarritoDesdeLista(){
   abrirCarrito();
 }
 
+/* ===================== PERSISTENCIA =====================
+   Carrito, sacadas, listado y formulario sobreviven a una recarga
+   (F5): se guardan en el navegador y se restauran al volver a cargar.
+   Las cartas se validan por nombre contra el inventario fresco: si la
+   planilla cambio, lo que no calza se descarta en vez de romper. */
+function persistirEstado(){
+  try{
+    var ta=document.getElementById('paste-textarea');
+    localStorage.setItem('paldea_estado', JSON.stringify({
+      carrito:CARRITO.map(function(c){return {cardId:c.cardId,idioma:c.idioma,qty:c.qty,nombre:c.nombre};}),
+      sacadas:SACADAS.map(function(c){return {cardId:c.cardId,idioma:c.idioma,qty:c.qty,nombre:c.nombre};}),
+      lista:ta?ta.value:'',
+      panel:document.getElementById('paste-panel').classList.contains('show')?'listado'
+           :(document.getElementById('carrito-panel').classList.contains('show')?'carrito':''),
+      form:FORM_DATA, entrega:entregaMode, dir:direccionMode
+    }));
+  }catch(e){}
+}
+function restaurarEstado(){
+  var raw;
+  try{ raw=localStorage.getItem('paldea_estado'); }catch(e){ return; }
+  if(!raw) return;
+  var s; try{ s=JSON.parse(raw); }catch(e){ return; }
+
+  (s.carrito||[]).forEach(function(it){
+    var r=CARDS.find(function(c){return c[0]===it.cardId;});
+    if(!r||normPK(r[1])!==normPK(it.nombre)) return;
+    var stk=getStock(r,it.idioma), prc=getPrecio(r,it.idioma);
+    if(stk<=0||prc<=0) return;
+    CARRITO.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:it.idioma,
+      precio:prc,qty:Math.min(it.qty,stk),img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
+  });
+  (s.sacadas||[]).forEach(function(it){
+    var r=CARDS.find(function(c){return c[0]===it.cardId;});
+    if(!r||normPK(r[1])!==normPK(it.nombre)) return;
+    SACADAS.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:it.idioma,
+      precio:getPrecio(r,it.idioma),qty:it.qty,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
+  });
+  FORM_DATA=s.form||{}; entregaMode=s.entrega||''; direccionMode=s.dir||'domicilio';
+
+  var ta=document.getElementById('paste-textarea');
+  if(ta&&s.lista&&s.lista.trim()){
+    ta.value=s.lista;
+    cotizarListaPK();          // reconstruye la cotizacion con stock fresco
+  }
+  if(s.panel==='listado'&&(COTIZ.length||COTIZ_NOPE.length)) abrirPegarListado();
+  else if(s.panel==='carrito'&&CARRITO.length) abrirCarrito();
+  actualizarCarritoBtn();
+}
+
 function escHtml(t){
   return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -1737,7 +1836,7 @@ function buildResumenPK(){
   var pedido=COTIZ.reduce(function(s,e){return s+e.item.qty;},0)
             +COTIZ_NOPE.reduce(function(s,d){return s+d.qty;},0);
   var yaTenias=COTIZ.reduce(function(s,e){return s+((!e.off&&e.motivo==='carrito')?e.item.qty:0);},0);
-  var sacadasQty=COTIZ.reduce(function(s,e){return s+((!e.agregada&&e.devuelta)?e.item.qty:0);},0);
+  var sacadasQty=COTIZ.reduce(function(s,e){return s+((!e.agregada&&e.devuelta)?e.devuelta.qty:0);},0);
   var quitadasQty=COTIZ.reduce(function(s,e){return s+((e.off&&!e.agregada&&!e.devuelta)?e.item.qty:0);},0);
   var falt=Math.max(0, pedido-enc-yaDeEstaLista-yaTenias-sacadasQty-quitadasQty);
 
@@ -1935,7 +2034,7 @@ function quitarAgregadaPK(idx){
   var e=COTIZ[idx]; if(!e) return;
   var i=CARRITO.findIndex(function(c){return c.cardId===e.found[0]&&c.idioma===e.idioma;});
   var qty=i>=0?CARRITO[i].qty:(e.enCarrito||e.item.qty);
-  if(i>=0) CARRITO.splice(i,1);
+  if(i>=0){ registrarSacada(CARRITO[i]); CARRITO.splice(i,1); }
   // Queda como "sacada": no suma en ningun total, pero se puede
   // reincorporar con las mismas condiciones (cantidad, idioma, variante)
   e.devuelta={qty:qty, idioma:e.idioma, uid:e.found[0]};
@@ -1962,35 +2061,26 @@ function reagregarDevueltaPK(idx){
   else CARRITO.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:idm,
     precio:prc,qty:agregar,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
   e.agregada=true; e.off=true; e.enCarrito=agregar; e.devuelta=null; e.dispManual=null;
+  olvidarSacada(uid,idm);
   actualizarCarritoBtn(); renderCard(uid); renderCotizacion();
 }
 // Descartar la sacada: se elimina la linea de la lista
 function descartarDevueltaPK(idx){
   var e=COTIZ[idx]; if(!e) return;
+  if(e.devuelta) olvidarSacada(e.devuelta.uid, e.devuelta.idioma);
   COTIZ.splice(idx,1);
   renderCotizacion(); actualizarFooterLista();
 }
-// "Volver a agregar" una quitada: entra directo al carrito con la
-// cantidad e idioma que tenia la linea. Si ya no hay stock, vuelve
-// a la lista de disponibles.
+// "Volver a agregar" una quitada: como nunca llego al carrito, se
+// restaura a su posicion original en "Por agregar a tu carrito".
 function reagregarQuitadaPK(idx){
   var e=COTIZ[idx]; if(!e||e.agregada||e.devuelta) return;
-  var r=e.found, idm=e.idioma, qty=e.item.qty;
-  var stk=getStock(r,idm), prc=getPrecio(r,idm);
-  var j=CARRITO.findIndex(function(c){return c.cardId===r[0]&&c.idioma===idm;});
-  var libre=Math.max(0,stk-(j>=0?CARRITO[j].qty:0));
-  var agregar=Math.min(qty,libre);
-  if(prc<=0||agregar<=0){
-    e.off=false; e.dispManual=null;
-    renderCotizacion(); return;
-  }
-  if(j>=0) CARRITO[j].qty+=agregar;
-  else CARRITO.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:idm,
-    precio:prc,qty:agregar,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
-  e.agregada=true; e.off=true; e.enCarrito=agregar; e.dispManual=null;
-  actualizarCarritoBtn(); renderCard(r[0]); renderCotizacion();
+  e.off=false; e.dispManual=null;
+  renderCotizacion();
 }
 function eliminarQuitadaPK(idx){
+  var e=COTIZ[idx];
+  if(e&&e.found) olvidarSacada(e.found[0], e.idioma);
   COTIZ.splice(idx,1);
   renderCotizacion(); actualizarFooterLista();
 }
@@ -2046,7 +2136,9 @@ function agregarCotizacionAlCarrito(){
       precio:prc,qty:Math.min(stk,e.disp),img:imgUrlFor(e.found),set:e.found[2]||'',
       setNombre:e.found[6]||'',num:e.found[3]||''});
     n++;
-    e.off=true; e.agregada=true; e.enCarrito=Math.min(stk,e.disp);
+    e.off=true; e.agregada=true;
+    var cAhora=CARRITO.find(function(c){return c.cardId===e.found[0]&&c.idioma===e.idioma;});
+    e.enCarrito=cAhora?cAhora.qty:Math.min(stk,e.disp);
   });
   actualizarCarritoBtn();
   renderAll();
@@ -2081,26 +2173,52 @@ function limpiarFiltroListado(){
 var CHECKOUT_VIEW='cart';
 var entregaMode='', direccionMode='domicilio';
 
+/* Los datos que el cliente ya escribio en el formulario NO se pierden
+   al retroceder al carrito, cerrar el panel o volver a avanzar. */
+var FORM_DATA={};
+var CK_CAMPOS=['ck-nombre','ck-usuario','ck-correo','ck-rut','ck-celular','ck-correoEnvio','ck-direccion','ck-dirNumero','ck-dirDepto','ck-ciudad','ck-dirCiudad','ck-nombreSucursal','ck-sucursal','ck-ciudadSuc','ck-ciudadSuc2','ck-retiroDia','ck-retiroHora'];
+function guardarFormPK(){
+  CK_CAMPOS.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) FORM_DATA[id]=el.value;
+  });
+}
+function restaurarFormPK(){
+  CK_CAMPOS.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el&&FORM_DATA[id]!==undefined) el.value=FORM_DATA[id];
+  });
+  if(entregaMode) setEntregaPK(entregaMode);
+  setDireccionPK(direccionMode);
+}
+
 var VINO_DEL_LISTADO=false;
 function abrirCarrito(){
   CHECKOUT_VIEW='cart';
   document.getElementById('carrito-panel').classList.add('show');
+  persistirEstado();
   renderCarritoPanel();
   // Si hay una cotizacion viva se ofrece volver a ella, sin importar
   // si el carrito se abrio desde el listado o desde el icono del header.
+  configurarBotonVolverPK();
+}
+function configurarBotonVolverPK(){
   var b=document.getElementById('cart-back-btn');
-  if(b){
-    var hayLista=(COTIZ.length>0||COTIZ_NOPE.length>0);
-    b.textContent=hayLista?'\u2190 Volver al listado':'Seguir viendo';
-    b.setAttribute('onclick',hayLista?'volverAlListado()':'cerrarCarrito()');
-  }
+  if(!b) return;
+  var hayLista=(COTIZ.length>0||COTIZ_NOPE.length>0);
+  b.textContent=hayLista?'\u2190 Volver al listado':'Seguir viendo';
+  b.setAttribute('onclick',hayLista?'volverAlListado()':'cerrarCarrito()');
 }
 function volverAlListado(){
   cerrarCarrito();
   abrirPegarListado();
   if(COTIZ.length||COTIZ_NOPE.length) renderCotizacion();
 }
-function cerrarCarrito(){document.getElementById('carrito-panel').classList.remove('show');}
+function cerrarCarrito(){
+  if(CHECKOUT_VIEW==='form') guardarFormPK();
+  document.getElementById('carrito-panel').classList.remove('show');
+  persistirEstado();
+}
 
 function renderCarritoPanel(){
   if(CHECKOUT_VIEW==='cart') renderVistaCarrito();
@@ -2116,11 +2234,17 @@ function renderVistaCarrito(){
   if(!CARRITO.length){
     body.innerHTML='<div class="cart-empty">Tu carrito esta vacio.</div>'+htmlSacadas();
     document.getElementById('cart-total').textContent='$0';
-    footer.querySelector('#cart-btns-row').style.display='none';
+    configurarBotonVolverPK();
+    var hayListaVacia=(COTIZ.length>0||COTIZ_NOPE.length>0);
+    // Si el cliente vacio el carrito estando en el flujo del listado,
+    // la unica salida no puede desaparecer: queda "Volver al listado".
+    footer.querySelector('#cart-btns-row').style.display=hayListaVacia?'flex':'none';
+    document.getElementById('cart-checkout-btn').style.display='none';
     footer.querySelector('.cart-note').style.display='none';
     return;
   }
   footer.querySelector('#cart-btns-row').style.display='flex';
+  document.getElementById('cart-checkout-btn').style.display='';
   footer.querySelector('.cart-note').style.display='block';
   var total=0, h='';
   h+='<div class="sec-label" style="color:var(--green);margin-top:0">Ya en tu carrito \u00B7 '+CARRITO.length+'</div>';
@@ -2159,8 +2283,10 @@ function irACheckout(){
   if(!CARRITO.length) return;
   CHECKOUT_VIEW='form';
   renderCarritoPanel();
+  persistirEstado();
 }
 function volverAlCarrito(){
+  guardarFormPK();
   CHECKOUT_VIEW='cart';
   renderCarritoPanel();
 }
@@ -2260,6 +2386,7 @@ function renderVistaFormulario(){
     +'<button class="checkout-back" onclick="volverAlCarrito()">Volver</button>'
     +'<button class="checkout-submit" id="ck-submit" onclick="enviarPedidoPK()">Enviar pedido</button>'
     +'</div>';
+  restaurarFormPK();
 }
 
 // Dias de retiro con fecha real: proximos 12 dias habiles (lunes a sabado),
@@ -2434,6 +2561,7 @@ async function enviarPedidoPK(){
   ULTIMO_PEDIDO=resp||null;
   CHECKOUT_VIEW='success';
   CARRITO=[]; SACADAS=[];
+  FORM_DATA={}; entregaMode=''; direccionMode='domicilio';
   VINO_DEL_LISTADO=false;
   COTIZ=[]; COTIZ_NOPE=[];
   actualizarCarritoBtn();
@@ -2484,8 +2612,20 @@ function reagregarSacada(i){
   renderCard(s.cardId);
 }
 function descartarSacada(i){
+  var s=SACADAS[i];
+  if(s){
+    // Si la linea del listado la tenia como "sacada", se limpia ahi
+    // tambien: queda como quitada normal, restaurable desde el listado.
+    COTIZ.forEach(function(e){
+      if(!e.agregada&&e.devuelta&&e.devuelta.uid===s.cardId&&e.devuelta.idioma===s.idioma){
+        e.devuelta=null;
+      }
+    });
+  }
   SACADAS.splice(i,1);
   if(CHECKOUT_VIEW==='cart') renderVistaCarrito();
+  var pl=document.getElementById('paste-panel');
+  if(pl&&pl.classList.contains('show')&&COTIZ.length) renderCotizacion();
 }
 function htmlSacadas(){
   if(!SACADAS.length) return '';
@@ -2579,6 +2719,8 @@ document.addEventListener('keydown',function(ev){
 });
 
 // Aviso de que las imagenes se pueden ampliar (texto segun dispositivo)
+var taPersist=document.getElementById('paste-textarea');
+if(taPersist) taPersist.addEventListener('input',persistirEstado);
 var tipZoomEl=document.getElementById('lista-tip-zoom');
 if(tipZoomEl) tipZoomEl.textContent='Consejo: '+TIP_ZOOM+'.';
 
