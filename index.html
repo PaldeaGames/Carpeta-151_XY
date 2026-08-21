@@ -1434,6 +1434,12 @@ function repartirStockCotiz(){
     e.disp=Math.min(quiere, libre);
     tomado[k]=ya+e.disp;
     e.dup=(ya>enCar);                       // otra linea de la lista ya tomo de esta carta
+    // Si el cliente la dejo en 0 a proposito (boton -), NO es "sin
+    // stock" ni "ya la tienes": la linea se queda en su lugar
+    // mostrando 0, y puede volver a subir con +.
+    if(e.dispManual===0){
+      e.estado='parcial'; e.motivo=null; e.dup=false; return;
+    }
     e.estado=(e.disp===0)?'sin':(e.disp>=e.item.qty?'ok':'parcial');
     // Si quedo en 0, distinguir el motivo real: no es lo mismo
     // "no tengo stock" que "ya lo tienes tu en el carrito".
