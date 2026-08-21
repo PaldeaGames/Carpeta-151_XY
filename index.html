@@ -368,6 +368,15 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 /* ===== Pie de pagina: derechos reservados ===== */
 .site-footer{border-top:1px solid var(--brd);padding:18px 20px 26px;text-align:center;font-size:.72rem;color:var(--txm);line-height:1.7}
 .site-footer strong{color:var(--tx);font-weight:700}
+
+/* ===== Avisos y confirmaciones con la estetica de la pagina
+   (reemplazan los alert/confirm nativos del navegador) ===== */
+.pk-modal{position:fixed;inset:0;z-index:400;display:none;align-items:center;justify-content:center;padding:20px}
+.pk-modal.show{display:flex}
+.pk-modal-box{position:relative;background:var(--surf);border:1px solid var(--brd2);border-radius:12px;padding:20px;max-width:min(380px,92vw);box-shadow:0 16px 50px rgba(0,0,0,.65)}
+.pk-modal-msg{font-size:.88rem;color:var(--tx);line-height:1.6;white-space:pre-line}
+.pk-modal-btns{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.pk-modal-btns .vb{padding:9px 16px;font-size:.82rem}
 </style>
 </head>
 <body>
@@ -381,7 +390,7 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
     </div>
   </div>
   <a class="ig-link" href="https://www.instagram.com/paldea.games" target="_blank" rel="noopener" title="Siguenos en Instagram: @paldea.games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" stroke="none"/></svg></a>
-  <button class="head-cart-btn" onclick="VINO_DEL_LISTADO=false;abrirCarrito()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>Carrito <span class="cart-count zero" id="cart-count">0</span></button>
+  <button class="head-cart-btn" onclick="abrirCarrito()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>Carrito <span class="cart-count zero" id="cart-count">0</span></button>
 </header>
 <button class="paste-banner opt-c" onclick="abrirPegarListado()">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg>
@@ -1051,7 +1060,7 @@ function cambiarQty(uid,delta,idioma){
     else CARRITO[idx].qty=Math.min(nueva,stk);
   } else if(delta>0&&precio>0&&stk>0){
     CARRITO.push({cardId:uid,nombre:r[1],rareza:r[4],idioma:idioma,precio:precio,qty:1,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
-    olvidarSacada(uid,idioma);
+    descontarSacada(uid,idioma,1);
   }
   actualizarCarritoBtn();
   parchearQty(uid,idioma);
@@ -1169,9 +1178,16 @@ function parsearLineaPK(linea){
   var toks=l.split(/\s+/).filter(Boolean);
 
   // cantidad al inicio: "4 Bulbasaur ..."
-  if(toks.length>1 && /^\d{1,2}$/.test(toks[0]) && parseInt(toks[0],10)>0 && parseInt(toks[0],10)<=99){
-    qty=parseInt(toks[0],10);
-    toks=toks.slice(1);
+  if(toks.length>1 && /^\d{1,2}$/.test(toks[0])){
+    var qIni=parseInt(toks[0],10);
+    if(qIni===0) return null;   // "0 Bulbasaur": el cliente pidio cero, no una
+    if(qIni<=99){ qty=qIni; toks=toks.slice(1); }
+    // >99: se deja como token (puede ser numero de carta)
+  }
+  // cantidad al inicio con x: "4x Bulbasaur" o "x4 Bulbasaur"
+  if(qty===null && toks.length>1){
+    var mIni=toks[0].match(/^(\d{1,2})[xX]$/)||toks[0].match(/^[xX](\d{1,2})$/);
+    if(mIni){ qty=parseInt(mIni[1],10); toks=toks.slice(1); }
   }
   // cantidad al final: "... x3"  "... X3"
   if(qty===null && toks.length>1){
@@ -1225,6 +1241,9 @@ function grupoDeCarta(c){
 }
 
 function buscarItemPK(item){
+  // Una linea sin texto (solo numeros) no identifica ninguna carta:
+  // calzaria con todas las que contengan ese numero.
+  if(!item.textuales.length) return null;
   // Fase 0: los tokens textuales calzan en el NOMBRE de la carta.
   // Sin esta fase, una palabra que tambien es codigo de set (ej. "mew",
   // codigo del set 151) calzaba con TODAS las cartas de ese set y la
@@ -1280,6 +1299,12 @@ function elegirVariante(cands){
 function cotizarListaPK(){
   var raw=document.getElementById('paste-textarea').value;
   var cont=document.getElementById('paste-resultado');
+  // Sin inventario cargado toda linea iria a "sin coincidencia" y el
+  // cliente pensaria que no tenemos nada: se avisa y no se cotiza.
+  if(!GAS_LOADED){
+    cont.innerHTML='<div class="nope-row" style="color:var(--red)">El inventario aun no termina de cargar. Espera un momento y vuelve a cotizar.</div>';
+    return;
+  }
   // Cotizar SIEMPRE reemplaza la cotizacion anterior. Antes, con el
   // cuadro vacio se hacia return dejando viva la lista previa y el pie
   // escondido: quedaba mostrando datos de una lista que ya no existia.
@@ -1335,26 +1360,39 @@ function cotizarListaPK(){
     });
   });
 
-  // Filtrar la grilla principal a las cartas de la lista, con banner
-  // para quitar el filtro. Reusa el mecanismo LISTADO_IDS.
-  // La grilla filtrada muestra TODAS las opciones de cada linea
-  // (todos los sets y rarezas posibles), no solo la elegida en el
-  // panel. Asi la persona puede cerrar el listado y hacer toda la
-  // seleccion (carta, idioma, cantidad) directamente en la grilla.
-  LISTADO_IDS=null;
-  if(COTIZ.length){
-    var idsLista=[];
-    COTIZ.forEach(function(e){
-      if(e.off) return;
-      e.alternativas.forEach(function(g){
-        g.forEach(function(c){ if(idsLista.indexOf(c[0])<0) idsLista.push(c[0]); });
-      });
+  // Lineas repetidas que resuelven a la MISMA carta+idioma se fusionan
+  // en una sola (el carrito las junta en una linea de todas formas):
+  // se suman las cantidades y se unen las alternativas para el filtro
+  // de la grilla. Asi nunca hay dos filas editando la misma linea del
+  // carrito ni resumenes que duplican unidades.
+  var fusion=[];
+  COTIZ.forEach(function(e){
+    var f=null;
+    for(var i=0;i<fusion.length;i++){
+      if(fusion[i].found[0]===e.found[0]&&fusion[i].idioma===e.idioma){ f=fusion[i]; break; }
+    }
+    if(!f){ fusion.push(e); return; }
+    f.item.qty+=e.item.qty;
+    f.fusionadas=(f.fusionadas||1)+1;
+    e.alternativas.forEach(function(g){
+      var k=normPK(g[0][1])+'|'+normPK(g[0][2])+'|'+normPK(g[0][3]);
+      var existe=false;
+      for(var j=0;j<f.alternativas.length;j++){
+        var g2=f.alternativas[j];
+        if(normPK(g2[0][1])+'|'+normPK(g2[0][2])+'|'+normPK(g2[0][3])===k){ existe=true; break; }
+      }
+      if(!existe) f.alternativas.push(g);
     });
-    LISTADO_IDS=idsLista.length?idsLista:null;
-  }
-  LISTADO_RESUMEN = LISTADO_IDS
-    ? (COTIZ.length+' carta(s) de tu lista \u00B7 todas sus opciones abajo'+(COTIZ_NOPE.length?' \u00B7 '+COTIZ_NOPE.length+' sin coincidencia':''))
-    : null;
+  });
+  COTIZ=fusion;
+
+  // Filtrar la grilla principal a las cartas de la lista, con banner
+  // para quitar el filtro. La grilla filtrada muestra TODAS las
+  // opciones de cada linea (todos los sets y rarezas posibles), no
+  // solo la elegida en el panel. Asi la persona puede cerrar el
+  // listado y hacer toda la seleccion (carta, idioma, cantidad)
+  // directamente en la grilla.
+  recalcularListadoIds();
   renderCotizacion();
   renderAll();
   persistirEstado();
@@ -1369,9 +1407,12 @@ function limpiarListaPK(){
   var unidades=CARRITO.reduce(function(s,c){return s+c.qty;},0);
   if(unidades>0){
     var totalC=CARRITO.reduce(function(s,c){return s+c.precio*c.qty;},0);
-    var ok=confirm('Esto vacia tambien tu carrito ('+unidades+' carta(s), '+clp(totalC)+') y empieza de cero.\n\n¿Continuar?');
-    if(!ok) return;
+    confirmaPK('Esto vacia tambien tu carrito ('+unidades+' carta(s), '+clp(totalC)+') y empieza de cero.\n\n¿Continuar?', limpiarListaRealPK);
+    return;
   }
+  limpiarListaRealPK();
+}
+function limpiarListaRealPK(){
   document.getElementById('paste-textarea').value='';
   document.getElementById('paste-resultado').innerHTML='';
   COTIZ=[]; COTIZ_NOPE=[];
@@ -1379,7 +1420,6 @@ function limpiarListaPK(){
   CARRITO=[]; SACADAS=[];
   FORM_DATA={}; entregaMode=''; direccionMode='domicilio';
   CHECKOUT_VIEW='cart';
-  VINO_DEL_LISTADO=false;
   actualizarCarritoBtn();
   actualizarFooterLista();
   renderAll();
@@ -1628,9 +1668,14 @@ function renderCotizacion(){
   // Conservar la posicion del scroll: sin esto, al redibujar los
   // resultados el contenido colapsaba un instante y el navegador
   // movia la vista (el "salto" de pagina al usar + / -).
+  // Se conserva tambien si el bloque "sin coincidencia" estaba
+  // abierto, para que no se pliegue solo en cada re-render.
   var cuerpoLista=cont.closest('.paste-body');
   var scrollGuardado=cuerpoLista?cuerpoLista.scrollTop:0;
+  var nopePrev=cont.querySelector('.nope-body');
+  var nopeAbierto=nopePrev&&nopePrev.style.display==='block';
   cont.innerHTML=h;
+  if(nopeAbierto){ var nopeNuevo=cont.querySelector('.nope-body'); if(nopeNuevo) nopeNuevo.style.display='block'; }
   if(cuerpoLista) cuerpoLista.scrollTop=scrollGuardado;
   actualizarFooterLista();
 }
@@ -1672,7 +1717,6 @@ function actualizarFooterLista(){
 }
 function irAlCarritoDesdeLista(){
   cerrarPegarListado();
-  VINO_DEL_LISTADO=true;
   abrirCarrito();
 }
 
@@ -1720,6 +1764,14 @@ function restaurarEstado(){
   if(ta&&s.lista&&s.lista.trim()){
     ta.value=s.lista;
     cotizarListaPK();          // reconstruye la cotizacion con stock fresco
+    // Las lineas cuya carta+idioma ya quedo en el carrito restaurado
+    // vuelven a su estado "agregada" (editables en vivo). Sin esto, la
+    // lista re-cotizada las volvia a ofrecer y podian duplicarse.
+    COTIZ.forEach(function(e){
+      var c=CARRITO.find(function(x){return x.cardId===e.found[0]&&x.idioma===e.idioma;});
+      if(c){ e.agregada=true; e.off=true; e.enCarrito=c.qty; e.dispManual=null; }
+    });
+    if(COTIZ.length) renderCotizacion();
   }
   if(s.panel==='listado'&&(COTIZ.length||COTIZ_NOPE.length)) abrirPegarListado();
   else if(s.panel==='carrito'&&CARRITO.length) abrirCarrito();
@@ -1752,6 +1804,7 @@ function buildRiPK(e,idx){
   var faltan=carg.filter(function(i){return disp.indexOf(i)<0;});
   if(faltan.length) aviso+='<div class="ri-aviso ri-aviso-idm">\u26A0 Sin stock en '+faltan.join(', ')+'</div>';
   if(e.dup) aviso+='<div class="ri-aviso ri-aviso-idm">\u26A0 Repetida: otra linea de tu lista pide esta misma carta</div>';
+  if(e.fusionadas>1) aviso+='<div class="ri-aviso ri-aviso-set">Juntamos '+e.fusionadas+' lineas de tu lista que pedian esta misma carta (pediste x'+e.item.qty+').</div>';
 
   // selector de rareza
   var selRar='';
@@ -1889,7 +1942,9 @@ function lineasFaltantesPK(){
   COTIZ.forEach(function(e){
     if(e.off) return;
     if(e.estado==='sin'&&e.motivo!=='dup'&&e.motivo!=='carrito') ls.push(e.item.qty+' '+e.item.display);
-    else if(e.estado==='parcial'&&e.disp<e.item.qty) ls.push((e.item.qty-e.disp)+' '+e.item.display);
+    // dispManual!=null: la cantidad menor la eligio el cliente con -,
+    // no es stock faltante, asi que no va al listado de "me faltan".
+    else if(e.estado==='parcial'&&e.dispManual==null&&e.disp<e.item.qty) ls.push((e.item.qty-e.disp)+' '+e.item.display);
   });
   COTIZ_NOPE.forEach(function(d){ ls.push(d.qty+' '+d.display); });
   return ls;
@@ -1934,7 +1989,8 @@ function buildRiAgregadaPK(e,idx){
     selRar='<select class="ri-sel" onchange="cambiarRarezaAgregadaPK('+idx+',this.value)">'
       +e.grupo.map(function(c){
         var sinStk=idiomasDisponibles(c).length===0;
-        return '<option value="'+c[0]+'"'+(c[0]===r[0]?' selected':'')+'>'+nombreRareza(c[4])+(sinStk?' (sin stock)':'')+'</option>';
+        // Sin stock no se puede elegir: mover las unidades ahi las perderia
+        return '<option value="'+c[0]+'"'+(c[0]===r[0]?' selected':'')+(sinStk?' disabled':'')+'>'+nombreRareza(c[4])+(sinStk?' (sin stock)':'')+'</option>';
       }).join('')+'</select>';
   }
   var selAlt='';
@@ -1943,7 +1999,8 @@ function buildRiAgregadaPK(e,idx){
       +e.alternativas.map(function(g){
         var c=elegirVariante(g);
         var sel=(normPK(c[1])===normPK(r[1])&&normPK(c[2])===normPK(r[2])&&normPK(c[3])===normPK(r[3]))?' selected':'';
-        return '<option value="'+c[0]+'"'+sel+'>'+c[6]+' N\u00B0 '+c[3]+'</option>';
+        var sinStkC=idiomasDisponibles(c).length===0;
+        return '<option value="'+c[0]+'"'+sel+(sinStkC?' disabled':'')+'>'+c[6]+' N\u00B0 '+c[3]+(sinStkC?' (sin stock)':'')+'</option>';
       }).join('')+'</select>';
   }
   var carg=idiomasCargados(r), disp=idiomasDisponibles(r);
@@ -1976,20 +2033,27 @@ function buildRiAgregadaPK(e,idx){
 
 // Mueve las unidades del carrito de la variante/idioma actual de la
 // linea a otra variante/idioma, topando al stock de destino.
+// Lo que no cupo (o no se pudo mover) NO se pierde: pasa a "Sacadas
+// de tu carrito" con las condiciones originales, como toda salida.
 function moverEnCarritoPK(e,uidNuevo,idiomaNuevo){
   var i=CARRITO.findIndex(function(c){return c.cardId===e.found[0]&&c.idioma===e.idioma;});
-  var qty=i>=0?CARRITO[i].qty:0;
+  var linea=i>=0?CARRITO[i]:null;
+  var qty=linea?linea.qty:0;
   if(i>=0) CARRITO.splice(i,1);
   var rN=CARDS.find(function(c){return c[0]===uidNuevo;});
   if(!rN) return 0;
   var stkN=getStock(rN,idiomaNuevo), prcN=getPrecio(rN,idiomaNuevo);
   var j=CARRITO.findIndex(function(c){return c.cardId===uidNuevo&&c.idioma===idiomaNuevo;});
   var libre=Math.max(0,stkN-(j>=0?CARRITO[j].qty:0));
-  var agregar=Math.min(qty,libre);
-  if(prcN>0&&agregar>0){
+  var agregar=(prcN>0)?Math.min(qty,libre):0;
+  if(agregar>0){
     if(j>=0) CARRITO[j].qty+=agregar;
     else CARRITO.push({cardId:rN[0],nombre:rN[1],rareza:rN[4],idioma:idiomaNuevo,
       precio:prcN,qty:agregar,img:imgUrlFor(rN),set:rN[2]||'',setNombre:rN[6]||'',num:rN[3]||''});
+  }
+  if(linea&&qty>agregar){
+    registrarSacada({cardId:linea.cardId,nombre:linea.nombre,rareza:linea.rareza,idioma:linea.idioma,
+      precio:linea.precio,qty:qty-agregar,img:linea.img,set:linea.set,setNombre:linea.setNombre,num:linea.num});
   }
   return agregar;
 }
@@ -2067,7 +2131,7 @@ function reagregarDevueltaPK(idx){
   else CARRITO.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:idm,
     precio:prc,qty:agregar,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
   e.agregada=true; e.off=true; e.enCarrito=agregar; e.devuelta=null; e.dispManual=null;
-  olvidarSacada(uid,idm);
+  descontarSacada(uid,idm,agregar);
   actualizarCarritoBtn(); renderCard(uid); renderCotizacion();
 }
 // Descartar la sacada: se elimina la linea de la lista
@@ -2075,20 +2139,25 @@ function descartarDevueltaPK(idx){
   var e=COTIZ[idx]; if(!e) return;
   if(e.devuelta) olvidarSacada(e.devuelta.uid, e.devuelta.idioma);
   COTIZ.splice(idx,1);
+  recalcularListadoIds(); renderAll();
   renderCotizacion(); actualizarFooterLista();
+  persistirEstado();
 }
 // "Volver a agregar" una quitada: como nunca llego al carrito, se
 // restaura a su posicion original en "Por agregar a tu carrito".
 function reagregarQuitadaPK(idx){
   var e=COTIZ[idx]; if(!e||e.agregada||e.devuelta) return;
   e.off=false; e.dispManual=null;
+  recalcularListadoIds(); renderAll();
   renderCotizacion();
 }
 function eliminarQuitadaPK(idx){
   var e=COTIZ[idx];
   if(e&&e.found) olvidarSacada(e.found[0], e.idioma);
   COTIZ.splice(idx,1);
+  recalcularListadoIds(); renderAll();
   renderCotizacion(); actualizarFooterLista();
+  persistirEstado();
 }
 
 function toggleNopePK(btn){
@@ -2104,6 +2173,7 @@ function cambiarQtyCotiz(idx,d){
 function toggleOffCotiz(idx){
   var e=COTIZ[idx]; if(!e) return;
   e.off=!e.off;
+  recalcularListadoIds(); renderAll();
   renderCotizacion();
 }
 function cambiarIdiomaCotiz(idx,idm){
@@ -2137,10 +2207,14 @@ function agregarCotizacionAlCarrito(){
     if(prc<=0) return;
     var stk=getStock(e.found,e.idioma);
     var idx=CARRITO.findIndex(function(c){return c.cardId===e.found[0]&&c.idioma===e.idioma;});
-    if(idx>=0) CARRITO[idx].qty=Math.min(stk,CARRITO[idx].qty+e.disp);
-    else CARRITO.push({cardId:e.found[0],nombre:e.found[1],rareza:e.found[4],idioma:e.idioma,
-      precio:prc,qty:Math.min(stk,e.disp),img:imgUrlFor(e.found),set:e.found[2]||'',
-      setNombre:e.found[6]||'',num:e.found[3]||''});
+    var agreg=0;
+    if(idx>=0){ var antes=CARRITO[idx].qty; CARRITO[idx].qty=Math.min(stk,antes+e.disp); agreg=CARRITO[idx].qty-antes; }
+    else { agreg=Math.min(stk,e.disp); CARRITO.push({cardId:e.found[0],nombre:e.found[1],rareza:e.found[4],idioma:e.idioma,
+      precio:prc,qty:agreg,img:imgUrlFor(e.found),set:e.found[2]||'',
+      setNombre:e.found[6]||'',num:e.found[3]||''}); }
+    // Si la carta estaba en "Sacadas de tu carrito", se descuenta ahi
+    // tambien: no puede quedar una entrada fantasma que sume de nuevo.
+    if(agreg>0) descontarSacada(e.found[0],e.idioma,agreg);
     n++;
     e.off=true; e.agregada=true;
     var cAhora=CARRITO.find(function(c){return c.cardId===e.found[0]&&c.idioma===e.idioma;});
@@ -2151,10 +2225,27 @@ function agregarCotizacionAlCarrito(){
   renderCotizacion();          // el panel debe reflejar que ya se agregaron
   if(n===0) return;   // el pie ya ofrece "Ir al carrito"; no se cierra el panel
   cerrarPegarListado();
-  VINO_DEL_LISTADO=true;
   abrirCarrito();
 }
 
+// Recalcula el filtro de la grilla segun las lineas vivas de la lista.
+// Quedan fuera solo las quitadas/eliminadas; las agregadas y las
+// sacadas siguen apareciendo (el cliente las sigue comprando).
+function recalcularListadoIds(){
+  LISTADO_IDS=null; LISTADO_RESUMEN=null;
+  if(!COTIZ.length) return;
+  var ids=[], vivas=0;
+  COTIZ.forEach(function(e){
+    if(e.off&&!e.agregada&&!e.devuelta) return;
+    vivas++;
+    e.alternativas.forEach(function(g){
+      g.forEach(function(c){ if(ids.indexOf(c[0])<0) ids.push(c[0]); });
+    });
+  });
+  if(!ids.length) return;
+  LISTADO_IDS=ids;
+  LISTADO_RESUMEN=vivas+' carta(s) de tu lista \u00B7 todas sus opciones abajo'+(COTIZ_NOPE.length?' \u00B7 '+COTIZ_NOPE.length+' sin coincidencia':'');
+}
 function mostrarBannerListado(){
   var existente=document.getElementById('listado-banner');
   if(existente) existente.remove();
@@ -2198,7 +2289,6 @@ function restaurarFormPK(){
   setDireccionPK(direccionMode);
 }
 
-var VINO_DEL_LISTADO=false;
 function abrirCarrito(){
   CHECKOUT_VIEW='cart';
   document.getElementById('carrito-panel').classList.add('show');
@@ -2500,7 +2590,7 @@ function validarFormularioPK(){
 var ENVIANDO=false;
 async function enviarPedidoPK(){
   if(ENVIANDO) return;
-  if(!CARRITO.length){ alert('Tu carrito esta vacio.'); volverAlCarrito(); return; }
+  if(!CARRITO.length){ alertaPK('Tu carrito esta vacio.'); volverAlCarrito(); return; }
   if(!validarFormularioPK()) return;
   ENVIANDO=true;
   var btn=document.getElementById('ck-submit');
@@ -2552,14 +2642,14 @@ async function enviarPedidoPK(){
 
   if(!enviado){
     ENVIANDO=false;
-    alert('Error de conexion. Intenta de nuevo.');
+    alertaPK('Error de conexion. Intenta de nuevo.');
     btn.disabled=false; btn.textContent='Enviar pedido';
     return;
   }
   if(resp&&resp.success===false){
     ENVIANDO=false;
     btn.disabled=false; btn.textContent='Enviar pedido';
-    alert(resp.error||'No se pudo registrar el pedido. Intenta de nuevo.');
+    alertaPK(resp.error||'No se pudo registrar el pedido. Intenta de nuevo.');
     return;
   }
   ENVIANDO=false;
@@ -2568,8 +2658,12 @@ async function enviarPedidoPK(){
   CHECKOUT_VIEW='success';
   CARRITO=[]; SACADAS=[];
   FORM_DATA={}; entregaMode=''; direccionMode='domicilio';
-  VINO_DEL_LISTADO=false;
   COTIZ=[]; COTIZ_NOPE=[];
+  // La lista se consume con el pedido: se limpia el filtro de la
+  // grilla y el texto pegado (si no, tras enviar la grilla quedaba
+  // filtrada por una lista muerta y al recargar reaparecia sola).
+  LISTADO_IDS=null; LISTADO_RESUMEN=null;
+  var taPed=document.getElementById('paste-textarea'); if(taPed) taPed.value='';
   actualizarCarritoBtn();
   renderCarritoPanel();
   renderAll();
@@ -2600,6 +2694,15 @@ function olvidarSacada(uid,idioma){
   var i=SACADAS.findIndex(function(x){return x.cardId===uid&&x.idioma===idioma;});
   if(i>=0) SACADAS.splice(i,1);
 }
+// Reingreso parcial: descuenta solo las unidades que volvieron y
+// conserva el resto del registro (antes se borraba entero aunque
+// volviera 1 de 5 y se perdia la memoria de las demas).
+function descontarSacada(uid,idioma,n){
+  var i=SACADAS.findIndex(function(x){return x.cardId===uid&&x.idioma===idioma;});
+  if(i<0) return;
+  SACADAS[i].qty-=n;
+  if(SACADAS[i].qty<=0) SACADAS.splice(i,1);
+}
 function reagregarSacada(i){
   var s=SACADAS[i]; if(!s) return;
   var r=CARDS.find(function(c){return c[0]===s.cardId;});
@@ -2608,7 +2711,7 @@ function reagregarSacada(i){
   var en=CARRITO.find(function(c){return c.cardId===s.cardId&&c.idioma===s.idioma;});
   var ya=en?en.qty:0;
   var cabe=Math.max(0,stk-ya);
-  if(prc<=0||cabe<=0){ alert('No queda stock disponible de '+s.nombre+' ('+s.idioma+') por ahora.'); return; }
+  if(prc<=0||cabe<=0){ alertaPK('No queda stock disponible de '+s.nombre+' ('+s.idioma+') por ahora.'); return; }
   var cant=Math.min(s.qty,cabe);
   if(en) en.qty+=cant;
   else CARRITO.push({cardId:s.cardId,nombre:s.nombre,rareza:s.rareza,idioma:s.idioma,precio:prc,qty:cant,img:imgUrlFor(r),set:s.set,setNombre:s.setNombre,num:s.num});
@@ -2632,16 +2735,22 @@ function descartarSacada(i){
   if(CHECKOUT_VIEW==='cart') renderVistaCarrito();
   var pl=document.getElementById('paste-panel');
   if(pl&&pl.classList.contains('show')&&COTIZ.length) renderCotizacion();
+  persistirEstado();
 }
 function htmlSacadas(){
   if(!SACADAS.length) return '';
   var h='<div class="sec-label" style="color:#ffb347">Sacadas de tu carrito \u00B7 '+SACADAS.length+'</div><div class="ag-box">';
   SACADAS.forEach(function(s,i){
+    // El boton muestra lo que realmente se puede reincorporar hoy
+    // (el stock pudo haber cambiado desde que salio del carrito)
+    var rS=CARDS.find(function(c){return c[0]===s.cardId;});
+    var stkS=rS?getStock(rS,s.idioma):0;
+    var qtyBtn=(stkS>0&&s.qty>stkS)?stkS:s.qty;
     h+='<div class="ag-row">'
       +(s.img?'<img class="ag-img" src="'+s.img+'" alt="'+escHtml(s.nombre)+'">':'')
       +'<div class="ag-info"><span class="ag-nom">'+escHtml(s.nombre)+'</span>'
       +'<span class="ag-meta">'+escHtml(s.setNombre||s.set||'\u2014')+(s.num?' N\u00B0 '+s.num:'')+' \u00B7 '+escHtml(nombreRareza(s.rareza))+' \u00B7 '+s.idioma+'</span></div>'
-      +'<button class="btn-volver-agregar" onclick="reagregarSacada('+i+')">Volver a agregar (x'+s.qty+')</button>'
+      +'<button class="btn-volver-agregar" onclick="reagregarSacada('+i+')">Volver a agregar (x'+qtyBtn+')</button>'
       +'<button class="ri-x" onclick="descartarSacada('+i+')" title="Quitar de la lista">\u2715</button>'
       +'</div>';
   });
@@ -2661,6 +2770,32 @@ function quitarCart(uid,idioma){
   renderCard(uid);
   actualizarCarritoBtn();
 }
+
+/* ---------- AVISOS Y CONFIRMACIONES (reemplazan alert/confirm nativos) ---------- */
+function _pkModal(msg,botones){
+  var m=document.getElementById('pk-modal');
+  if(!m){
+    m=document.createElement('div');
+    m.id='pk-modal'; m.className='pk-modal';
+    m.innerHTML='<div class="cart-overlay" style="position:absolute" onclick="cerrarModalPK()"></div>'
+      +'<div class="pk-modal-box"><div class="pk-modal-msg" id="pk-modal-msg"></div>'
+      +'<div class="pk-modal-btns" id="pk-modal-btns"></div></div>';
+    document.body.appendChild(m);
+  }
+  document.getElementById('pk-modal-msg').textContent=msg;
+  var bb=document.getElementById('pk-modal-btns');
+  bb.innerHTML='';
+  botones.forEach(function(b){
+    var btn=document.createElement('button');
+    btn.className=b.cls; btn.textContent=b.txt;
+    btn.onclick=function(){ m.classList.remove('show'); if(b.cb) b.cb(); };
+    bb.appendChild(btn);
+  });
+  m.classList.add('show');
+}
+function cerrarModalPK(){ var m=document.getElementById('pk-modal'); if(m) m.classList.remove('show'); }
+function alertaPK(msg){ _pkModal(msg,[{txt:'Entendido',cls:'vb btn-cotizar',cb:null}]); }
+function confirmaPK(msg,onOk){ _pkModal(msg,[{txt:'Cancelar',cls:'vb',cb:null},{txt:'Si, continuar',cls:'vb btn-cotizar',cb:onOk}]); }
 
 document.addEventListener('wheel',function(e){ if(e.ctrlKey) e.preventDefault(); },{passive:false});
 document.addEventListener('keydown',function(e){
@@ -2721,7 +2856,7 @@ document.addEventListener('click',function(ev){
   if(_lpFired){ ev.preventDefault(); ev.stopPropagation(); _lpFired=false; }
 },true);
 document.addEventListener('keydown',function(ev){
-  if(ev.key==='Escape') cerrarVisorImg();
+  if(ev.key==='Escape'){ cerrarVisorImg(); cerrarModalPK(); }
 });
 
 // Aviso de que las imagenes se pueden ampliar (texto segun dispositivo)
