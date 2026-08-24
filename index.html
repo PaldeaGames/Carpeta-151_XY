@@ -360,13 +360,15 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 }
 @keyframes hintNudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
 
-/* ===== Icono Instagram en el header ===== */
-.ig-link{width:38px;height:38px;border-radius:50%;border:1px solid var(--brd2);color:var(--txm);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;text-decoration:none}
+/* ===== Iconos sociales en el header ===== */
+.head-social{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.ig-link,.wa-link{width:38px;height:38px;border-radius:50%;border:1px solid var(--brd2);color:var(--txm);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;text-decoration:none}
 .ig-link:hover{color:#fff;border-color:var(--acc);background:var(--acc)}
-.ig-link svg{width:19px;height:19px}
+.wa-link:hover{color:#0d0d0f;border-color:var(--green);background:var(--green)}
+.ig-link svg,.wa-link svg{width:19px;height:19px}
 @media (max-width:480px){
-  .ig-link{width:32px;height:32px}
-  .ig-link svg{width:16px;height:16px}
+  .ig-link,.wa-link{width:32px;height:32px}
+  .ig-link svg,.wa-link svg{width:16px;height:16px}
 }
 
 /* ===== Pie de pagina: derechos reservados ===== */
@@ -398,7 +400,10 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
       <p>Elige tu idioma en cada carta y agrégala al carrito</p>
     </div>
   </div>
-  <a class="ig-link" href="https://www.instagram.com/paldea.games" target="_blank" rel="noopener" title="Siguenos en Instagram: @paldea.games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" stroke="none"/></svg></a>
+  <div class="head-social">
+    <a class="wa-link" href="https://wa.me/56978928806" target="_blank" rel="noopener" title="Escribenos por WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+    <a class="ig-link" href="https://www.instagram.com/paldea.games" target="_blank" rel="noopener" title="Siguenos en Instagram: @paldea.games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.4"/><circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" stroke="none"/></svg></a>
+  </div>
   <button class="head-cart-btn" onclick="abrirCarrito()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>Carrito <span class="cart-count zero" id="cart-count">0</span></button>
 </header>
 <button class="paste-banner opt-c" onclick="abrirPegarListado()">
@@ -1069,7 +1074,16 @@ function cambiarQty(uid,delta,idioma){
   var idx=CARRITO.findIndex(function(c){return c.cardId===uid&&c.idioma===idioma;});
   if(idx>=0){
     var nueva=CARRITO[idx].qty+delta;
-    if(nueva<=0){ registrarSacada(CARRITO[idx]); CARRITO.splice(idx,1); }
+    if(nueva<=0){
+      var removido=CARRITO[idx];
+      registrarSacada(removido); CARRITO.splice(idx,1);
+      COTIZ.forEach(function(e){
+        if(e.agregada&&e.found&&e.found[0]===uid&&e.idioma===idioma){
+          e.devuelta={qty:removido.qty, idioma:idioma, uid:uid};
+          e.agregada=false; e.off=true; e.enCarrito=0; e.dispManual=null;
+        }
+      });
+    }
     else CARRITO[idx].qty=Math.min(nueva,stk);
   } else if(delta>0&&precio>0&&stk>0){
     CARRITO.push({cardId:uid,nombre:r[1],rareza:r[4],idioma:idioma,precio:precio,qty:1,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
@@ -1768,6 +1782,9 @@ function restaurarEstado(){
   (s.sacadas||[]).forEach(function(it){
     var r=CARDS.find(function(c){return c[0]===it.cardId;});
     if(!r||normPK(r[1])!==normPK(it.nombre)) return;
+    // Si la carta ya quedo en el carrito restaurado, no tiene sentido
+    // mostrarla tambien como "sacada" (seria contradictorio).
+    if(CARRITO.find(function(c){return c.cardId===it.cardId&&c.idioma===it.idioma;})) return;
     SACADAS.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:it.idioma,
       precio:getPrecio(r,it.idioma),qty:it.qty,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
   });
@@ -2635,6 +2652,7 @@ async function enviarPedidoPK(){
     rut:entregaMode==='envio'?ckVal('ck-rut'):null,
     celular:entregaMode==='envio'?'+569'+ckVal('ck-celular'):null,
     correo:ckVal('ck-correo'),
+    correo_envio:entregaMode==='envio'?ckVal('ck-correoEnvio'):null,
     direccion:entregaMode==='envio'?direccionStr:null
   };
 
@@ -2649,9 +2667,12 @@ async function enviarPedidoPK(){
     try{ resp=await r.json(); }catch(eJson){ resp=null; }   // se envio, solo no pudimos leer
   } catch(e){
     // fetch rechazado: puede ser CORS (ya salio) o red caida (no salio).
-    // No se reintenta para no arriesgar un duplicado.
-    enviado=true;
-    resp=null;
+    // No sabemos cual; NO vaciamos el carrito para que el cliente no
+    // pierda su trabajo. Se muestra aviso ambiguo y que confirme por IG.
+    ENVIANDO=false;
+    btn.disabled=false; btn.textContent='Enviar pedido';
+    alertaPK('No pudimos confirmar si tu pedido llego. Es posible que se haya enviado correctamente.\n\nPor favor escribenos por Instagram (@paldea.games) para verificar antes de volver a intentar.');
+    return;
   }
 
   if(!enviado){
@@ -2688,10 +2709,13 @@ function renderVistaExito(){
   document.getElementById('cart-head-title').textContent='Pedido enviado';
   document.getElementById('cart-footer-zone').style.display='none';
   var p=ULTIMO_PEDIDO;
+  var confirmado=!!(p&&(p.id||p.success!==undefined));
   document.getElementById('cart-body').innerHTML=
-    '<div class="success-box"><div class="ok-icon">\u2713</div>'
-    +'<h3>Pedido '+((p&&p.id)?p.id:'registrado')+'</h3>'
-    +'<p>Te contactaremos por Instagram para confirmar stock y coordinar el pago.</p>'
+    '<div class="success-box"><div class="ok-icon">'+(confirmado?'\u2713':'\u2709')+'</div>'
+    +'<h3>Pedido '+((p&&p.id)?p.id:(confirmado?'registrado':'enviado'))+'</h3>'
+    +(confirmado
+      ?'<p>Te contactaremos por Instagram para confirmar stock y coordinar el pago.</p>'
+      :'<p>Tu pedido fue enviado, pero no pudimos confirmar la recepcion. Te contactaremos por Instagram para verificar.</p>')
     +(p&&p.total?'<p style="margin-top:6px;color:var(--gold);font-weight:700">Total: '+clp(p.total)+'</p>':'')
     +'<button class="checkout-back" style="margin-top:18px" onclick="cerrarCarrito()">Cerrar</button></div>';
 }
@@ -2731,6 +2755,12 @@ function reagregarSacada(i){
   else CARRITO.push({cardId:s.cardId,nombre:s.nombre,rareza:s.rareza,idioma:s.idioma,precio:prc,qty:cant,img:imgUrlFor(r),set:s.set,setNombre:s.setNombre,num:s.num});
   s.qty-=cant;
   if(s.qty<=0) SACADAS.splice(i,1);
+  // Sincronizar COTIZ.devuelta para que ambos paneles muestren lo mismo
+  COTIZ.forEach(function(e){
+    if(e.devuelta&&e.devuelta.uid===s.cardId&&e.devuelta.idioma===s.idioma){
+      e.devuelta=null; e.agregada=true; e.off=true; e.enCarrito=(en?en.qty:cant); e.dispManual=null;
+    }
+  });
   actualizarCarritoBtn();
   renderCard(s.cardId);
 }
@@ -2760,8 +2790,9 @@ function htmlSacadas(){
     var rS=CARDS.find(function(c){return c[0]===s.cardId;});
     var stkS=rS?getStock(rS,s.idioma):0;
     var qtyBtn=(stkS>0&&s.qty>stkS)?stkS:s.qty;
+    var imgSac=rS?imgUrlFor(rS):s.img;
     h+='<div class="ag-row">'
-      +(s.img?'<img class="ag-img" src="'+s.img+'" alt="'+escHtml(s.nombre)+'">':'')
+      +(imgSac?'<img class="ag-img" src="'+imgSac+'" alt="'+escHtml(s.nombre)+'" title="'+TIP_TITLE+'" data-idx="0" onerror="imgFallbackCart(this,'+s.cardId+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
       +'<div class="ag-info"><span class="ag-nom">'+escHtml(s.nombre)+'</span>'
       +'<span class="ag-meta">'+escHtml(s.setNombre||s.set||'\u2014')+(s.num?' N\u00B0 '+s.num:'')+' \u00B7 '+escHtml(nombreRareza(s.rareza))+' \u00B7 '+s.idioma+'</span></div>'
       +'<button class="btn-volver-agregar" onclick="reagregarSacada('+i+')">Volver a agregar (x'+qtyBtn+')</button>'
@@ -2779,8 +2810,16 @@ function cambiarQtyCart(uid,idioma,delta){
 function quitarCart(uid,idioma){
   var idx=CARRITO.findIndex(function(c){return c.cardId===uid&&c.idioma===idioma;});
   if(idx<0) return;
-  registrarSacada(CARRITO[idx]);
+  var item=CARRITO[idx];
+  registrarSacada(item);
   CARRITO.splice(idx,1);
+  // Sincronizar COTIZ para que el panel de listado refleje la sacada
+  COTIZ.forEach(function(e){
+    if(e.agregada&&e.found&&e.found[0]===uid&&e.idioma===idioma){
+      e.devuelta={qty:item.qty, idioma:idioma, uid:uid};
+      e.agregada=false; e.off=true; e.enCarrito=0; e.dispManual=null;
+    }
+  });
   renderCard(uid);
   actualizarCarritoBtn();
 }
