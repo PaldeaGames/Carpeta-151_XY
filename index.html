@@ -801,12 +801,16 @@ if(window.ResizeObserver){
 }
 
 /* ===================== FILTROS ===================== */
+var _qTimer=null;
 function setQ(v){
   QF=v;
   PAGE=1;
   var btn=document.getElementById('search-clear');
   if(btn) btn.style.display=v?'flex':'none';
-  renderAll();
+  // Pequena espera antes de repintar: sin ella, cada tecla redibuja la
+  // grilla completa y las imagenes parpadean al escribir rapido.
+  clearTimeout(_qTimer);
+  _qTimer=setTimeout(renderAll,140);
 }
 function clearQ(){
   var inp=document.getElementById('search-input');
@@ -1027,7 +1031,7 @@ function renderTable(rows,cont){
 function buildRowHtml(r){
   var idioma=idiomaActivo(r);
   var url=imgUrlFor(r);
-  var imgHtml=url?'<img src="'+url+'" alt="'+escHtml(r[1])+'" data-idx="0" style="width:44px;border-radius:4px" onerror="imgFallback(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'\u2014';
+  var imgHtml=url?'<img src="'+url+'" alt="'+escHtml(r[1])+'" title="'+escHtml(r[1])+' \u00B7 '+TIP_TITLE+'" data-idx="0" style="width:44px;border-radius:4px" onerror="imgFallback(this,'+r[0]+',parseInt(this.getAttribute(\'data-idx\'),10))">':'\u2014';
 
   var langCell='\u2014',precioCell='\u2014',stkCell='\u2014',cartCell='';
   if(GAS_LOADED){
@@ -1136,6 +1140,9 @@ function actualizarCarritoBtn(){
 
 /* ===================== PEGAR LISTADO ===================== */
 function abrirPegarListado(){
+  // Misma regla espejo: abrir el listado cierra el carrito (guardando
+  // el formulario si el cliente estaba a mitad de el).
+  cerrarCarrito();
   document.getElementById('paste-panel').classList.add('show');
   persistirEstado();
   // Siempre se re-sincroniza con el carrito actual: si el cliente fue
@@ -1765,12 +1772,18 @@ function restaurarEstado(){
     if(!r||normPK(r[1])!==normPK(it.nombre)) return;
     var stk=getStock(r,it.idioma), prc=getPrecio(r,it.idioma);
     if(stk<=0||prc<=0) return;
+    // Estados guardados por versiones antiguas podian traer la misma
+    // carta+idioma duplicada ("Charmander 2 veces"): se fusionan.
+    var dup=CARRITO.find(function(c){return c.cardId===r[0]&&c.idioma===it.idioma;});
+    if(dup){ dup.qty=Math.min(dup.qty+it.qty,stk); return; }
     CARRITO.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:it.idioma,
       precio:prc,qty:Math.min(it.qty,stk),img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
   });
   (s.sacadas||[]).forEach(function(it){
     var r=CARDS.find(function(c){return c[0]===it.cardId;});
     if(!r||normPK(r[1])!==normPK(it.nombre)) return;
+    var dupS=SACADAS.find(function(c){return c.cardId===r[0]&&c.idioma===it.idioma;});
+    if(dupS){ dupS.qty+=it.qty; return; }
     SACADAS.push({cardId:r[0],nombre:r[1],rareza:r[4],idioma:it.idioma,
       precio:getPrecio(r,it.idioma),qty:it.qty,img:imgUrlFor(r),set:r[2]||'',setNombre:r[6]||'',num:r[3]||''});
   });
@@ -2309,10 +2322,18 @@ function restaurarFormPK(){
   });
   if(entregaMode) setEntregaPK(entregaMode);
   setDireccionPK(direccionMode);
+  // Si habia un dia de retiro guardado, se reconstruyen las horas segun
+  // ese dia (el sabado cierra mas temprano): una hora guardada que ya
+  // no es valida se descarta en vez de enviarse tal cual.
+  if(entregaMode==='retiro'&&ckVal('ck-retiroDia')) actualizarHorasRetiroPK();
 }
 
 function abrirCarrito(){
   CHECKOUT_VIEW='cart';
+  // Los dos paneles nunca quedan abiertos a la vez: si el listado estaba
+  // abierto, se cierra (si no, al cerrar el carrito reaparecia debajo,
+  // como un panel "fantasma").
+  cerrarPegarListado();
   document.getElementById('carrito-panel').classList.add('show');
   persistirEstado();
   renderCarritoPanel();
@@ -2643,6 +2664,7 @@ async function enviarPedidoPK(){
     rut:entregaMode==='envio'?ckVal('ck-rut'):null,
     celular:entregaMode==='envio'?'+569'+ckVal('ck-celular'):null,
     correo:ckVal('ck-correo'),
+    correo_envio:entregaMode==='envio'?ckVal('ck-correoEnvio'):null,
     direccion:entregaMode==='envio'?direccionStr:null
   };
 
@@ -2768,11 +2790,16 @@ function htmlSacadas(){
     var rS=CARDS.find(function(c){return c[0]===s.cardId;});
     var stkS=rS?getStock(rS,s.idioma):0;
     var qtyBtn=(stkS>0&&s.qty>stkS)?stkS:s.qty;
+    // Sin stock el boton no promete cantidad: queda deshabilitado y
+    // explica por que no se puede reincorporar por ahora.
+    var btnVuelve=(stkS>0)
+      ?'<button class="btn-volver-agregar" onclick="reagregarSacada('+i+')">Volver a agregar (x'+qtyBtn+')</button>'
+      :'<button class="btn-volver-agregar" disabled style="opacity:.45;cursor:not-allowed;filter:grayscale(.6)" title="Sin stock por ahora">Sin stock por ahora</button>';
     h+='<div class="ag-row">'
       +(s.img?'<img class="ag-img" src="'+s.img+'" alt="'+escHtml(s.nombre)+'" data-idx="0" onerror="imgFallbackCart(this,'+s.cardId+',parseInt(this.getAttribute(\'data-idx\'),10))">':'')
       +'<div class="ag-info"><span class="ag-nom">'+escHtml(s.nombre)+'</span>'
       +'<span class="ag-meta">'+escHtml(s.setNombre||s.set||'\u2014')+(s.num?' N\u00B0 '+s.num:'')+' \u00B7 '+escHtml(nombreRareza(s.rareza))+' \u00B7 '+s.idioma+'</span></div>'
-      +'<button class="btn-volver-agregar" onclick="reagregarSacada('+i+')">Volver a agregar (x'+qtyBtn+')</button>'
+      +btnVuelve
       +'<button class="ri-x" onclick="descartarSacada('+i+')" title="Quitar de la lista">\u2715</button>'
       +'</div>';
   });
@@ -2843,8 +2870,26 @@ function abrirVisorImg(src,titulo){
       +'</div>';
     document.body.appendChild(v);
   }
-  document.getElementById('visor-img-el').src=src;
-  document.getElementById('visor-img-cap').textContent=titulo||'';
+  var img=document.getElementById('visor-img-el');
+  var cap=document.getElementById('visor-img-cap');
+  // Si la imagen esta caida (404), el visor recorre la MISMA cadena de
+  // candidatos que usa el resto de la pagina; solo si todas fallan se
+  // muestra el aviso. Antes se veia el icono de imagen rota en grande.
+  var cands=null, idx=0;
+  for(var uid in IMG_CAND){
+    var k=IMG_CAND[uid].indexOf(src);
+    if(k>=0){ cands=IMG_CAND[uid]; idx=k; break; }
+  }
+  img.setAttribute('data-vidx',idx);
+  img.onerror=function(){
+    var i=parseInt(img.getAttribute('data-vidx'),10)+1;
+    if(cands&&i<cands.length){ img.setAttribute('data-vidx',i); img.src=cands[i]; return; }
+    img.onerror=null; img.style.display='none';
+    cap.textContent=(titulo?titulo+' \u00B7 ':'')+'Imagen no disponible';
+  };
+  img.style.display='';
+  img.src=src;
+  cap.textContent=titulo||'';
   v.classList.add('show');
 }
 function cerrarVisorImg(){
@@ -2853,7 +2898,7 @@ function cerrarVisorImg(){
 }
 document.addEventListener('contextmenu',function(ev){
   var t=ev.target;
-  if(t&&t.tagName==='IMG'&&t.closest('.alt-thumb,.ri,.ag-row,.ci,.cart-item')){
+  if(t&&t.tagName==='IMG'&&t.closest('.alt-thumb,.ri,.ag-row,.ci,.cart-item,.tbl')){
     ev.preventDefault();
     abrirVisorImg(t.src,t.alt||'');
   }
@@ -2862,7 +2907,7 @@ document.addEventListener('contextmenu',function(ev){
 var _lpTimer=null,_lpFired=false;
 document.addEventListener('touchstart',function(ev){
   var t=ev.target;
-  if(t&&t.tagName==='IMG'&&t.closest('.alt-thumb,.ri,.ag-row,.ci,.cart-item')){
+  if(t&&t.tagName==='IMG'&&t.closest('.alt-thumb,.ri,.ag-row,.ci,.cart-item,.tbl')){
     var src=t.src,alt=t.alt||'';
     _lpTimer=setTimeout(function(){ _lpFired=true; abrirVisorImg(src,alt); },500);
   }
@@ -2878,7 +2923,16 @@ document.addEventListener('click',function(ev){
   if(_lpFired){ ev.preventDefault(); ev.stopPropagation(); _lpFired=false; }
 },true);
 document.addEventListener('keydown',function(ev){
-  if(ev.key==='Escape'){ cerrarVisorImg(); cerrarModalPK(); }
+  if(ev.key!=='Escape') return;
+  // Cierra solo lo que esta mas arriba, en orden de capa.
+  var v=document.getElementById('visor-img');
+  if(v&&v.classList.contains('show')){ cerrarVisorImg(); return; }
+  var m=document.getElementById('pk-modal');
+  if(m&&m.classList.contains('show')){ cerrarModalPK(); return; }
+  var pp=document.getElementById('paste-panel');
+  if(pp&&pp.classList.contains('show')){ cerrarPegarListado(); return; }
+  var cp=document.getElementById('carrito-panel');
+  if(cp&&cp.classList.contains('show')){ cerrarCarrito(); return; }
 });
 
 // Aviso de que las imagenes se pueden ampliar (texto segun dispositivo)
