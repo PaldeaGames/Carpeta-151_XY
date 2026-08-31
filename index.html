@@ -380,6 +380,14 @@ header p{font-size:.75rem;color:var(--txm);margin-top:1px}
 .footer-link.ig:hover{color:#fff;border-color:var(--acc);background:var(--acc)}
 .footer-link.wa:hover{color:#0d0d0f;border-color:var(--green);background:var(--green)}
 
+/* El menu nativo del celular (mantener presionada una imagen) nunca debe
+   aparecer sobre las cartas: contaminaba la vista antes de abrir el visor */
+.ci img,.alt-thumb img,.ri-img,.ag-img,.cart-item img,.tbl img{
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  user-select:none;
+}
+
 /* ===== Avisos y confirmaciones con la estetica de la pagina
    (reemplazan los alert/confirm nativos del navegador) ===== */
 .pk-modal{position:fixed;inset:0;z-index:400;display:none;align-items:center;justify-content:center;padding:20px}
@@ -2903,13 +2911,16 @@ document.addEventListener('contextmenu',function(ev){
     abrirVisorImg(t.src,t.alt||'');
   }
 });
-// En tactil no hay clic derecho: mantener presionado ~0.5s abre el visor
+// En tactil no hay clic derecho: mantener presionado abre el visor.
+// 320ms: suficiente para que un toque normal (tap) no lo dispare,
+// pero mas rapido que el menu nativo del celular, que contaminaba
+// la vista de la carta antes de que se abriera el visor.
 var _lpTimer=null,_lpFired=false;
 document.addEventListener('touchstart',function(ev){
   var t=ev.target;
   if(t&&t.tagName==='IMG'&&t.closest('.alt-thumb,.ri,.ag-row,.ci,.cart-item,.tbl')){
     var src=t.src,alt=t.alt||'';
-    _lpTimer=setTimeout(function(){ _lpFired=true; abrirVisorImg(src,alt); },500);
+    _lpTimer=setTimeout(function(){ _lpFired=true; abrirVisorImg(src,alt); },320);
   }
 },{passive:true});
 document.addEventListener('touchmove',function(){
